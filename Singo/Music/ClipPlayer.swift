@@ -24,16 +24,25 @@ final class ClipPlayer {
     private var audioSessionReady = false
     private var currentLabel = ""
 
-    /// Claim the TV's audio output for music playback.
-    private func prepareAudioSession() {
+    /// Claim the TV's audio output for music playback. Runs off the main
+    /// thread because setting up the audio session can block for a moment.
+    private func prepareAudioSession() async {
         guard !audioSessionReady else { return }
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default)
-            try session.setActive(true)
+        let result: Result<[String], Error> = await Task.detached(priority: .userInitiated) {
+            do {
+                let session = AVAudioSession.sharedInstance()
+                try session.setCategory(.playback, mode: .default)
+                try session.setActive(true)
+                return .success(session.currentRoute.outputs.map(\.portName))
+            } catch {
+                return .failure(error)
+            }
+        }.value
+        switch result {
+        case .success(let outputs):
             audioSessionReady = true
-            log.info("Audio session ready, route: \(session.currentRoute.outputs.map(\.portName), privacy: .public)")
-        } catch {
+            log.info("Audio session ready, route: \(outputs, privacy: .public)")
+        case .failure(let error):
             log.error("Audio session failed: \(error.localizedDescription, privacy: .public)")
         }
     }
@@ -51,7 +60,7 @@ final class ClipPlayer {
 
     /// `label` is what the "Now Playing" card shows instead of the song, e.g. "Song 3 of 28".
     func play(_ song: Song, from startTime: TimeInterval, label: String) async throws {
-        prepareAudioSession()
+        await prepareAudioSession()
         currentLabel = label
         log.info("Playing \(song.title, privacy: .public) from \(startTime)s")
 
