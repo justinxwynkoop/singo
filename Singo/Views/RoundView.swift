@@ -139,12 +139,6 @@ struct RoundView: View {
     private var titleArea: some View {
         if engine.phase == .revealed {
             VStack(spacing: 10) {
-                if let number = engine.called.last?.number {
-                    Text("CALLED #\(number)")
-                        .font(.system(size: 24, weight: .semibold))
-                        .tracking(3)
-                        .foregroundStyle(.white.opacity(0.45))
-                }
                 Text(controller.currentSong?.title ?? "")
                     .font(.system(size: 72, weight: .bold))
                     .foregroundStyle(.white)
