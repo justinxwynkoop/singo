@@ -9,15 +9,18 @@ public enum Hint: String, CaseIterable, Codable, Sendable {
 }
 
 public enum TitleHintStyle: String, CaseIterable, Codable, Sendable {
-    case wordCount
+    /// "_ _ _   _ _ _ _": word count and word lengths only.
+    case blanks
+    /// "H _ _   _ _ _ _": plus the first letter of the title.
     case firstLetter
-    case both
+    /// "H _ _   J _ _ _": plus the first letter of every word.
+    case firstLetterOfEachWord
 
     public var label: String {
         switch self {
-        case .wordCount: return "Word count"
-        case .firstLetter: return "First letter"
-        case .both: return "Word count + first letter"
+        case .blanks: return "Blanks only"
+        case .firstLetter: return "Blanks + first letter"
+        case .firstLetterOfEachWord: return "Blanks + first letter of each word"
         }
     }
 }
@@ -34,7 +37,7 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     public var revealHold: TimeInterval = 5
     /// How much the "add time" button adds.
     public var addTimeStep: TimeInterval = 15
-    public var titleHintStyle: TitleHintStyle = .both
+    public var titleHintStyle: TitleHintStyle = .firstLetter
     /// When false, the round waits on the reveal screen until the host moves on.
     public var autoAdvance: Bool = true
 

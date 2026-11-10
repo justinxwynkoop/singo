@@ -190,9 +190,19 @@ final class TitleHintTests: XCTestCase {
     }
 
     func testHintText() {
-        XCTAssertEqual(TitleHint.text(for: "Hey Jude", style: .both), "2 words · starts with H")
-        XCTAssertEqual(TitleHint.text(for: "Yesterday", style: .wordCount), "1 word")
-        XCTAssertEqual(TitleHint.text(for: "99 Luftballons", style: .firstLetter), "starts with 9")
+        XCTAssertEqual(TitleHint.text(for: "Hey Jude", style: .blanks), "_ _ _   _ _ _ _")
+        XCTAssertEqual(TitleHint.text(for: "Hey Jude", style: .firstLetter), "H _ _   _ _ _ _")
+        XCTAssertEqual(TitleHint.text(for: "hey jude", style: .firstLetterOfEachWord), "H _ _   J _ _ _")
+        XCTAssertEqual(TitleHint.text(for: "99 Luftballons", style: .firstLetter), "9 _   _ _ _ _ _ _ _ _ _ _")
+    }
+
+    func testHintKeepsPunctuationAndDropsExtras() {
+        XCTAssertEqual(TitleHint.text(for: "Don't Stop - Remastered", style: .blanks), "_ _ _ ' _   _ _ _ _")
+        XCTAssertEqual(TitleHint.text(for: "Rock & Roll (Live)", style: .firstLetterOfEachWord), "R _ _ _   &   R _ _ _")
+    }
+
+    func testHintGlyphs() {
+        XCTAssertEqual(TitleHint.glyphs(for: "Go!", style: .firstLetter), [[.shown("G"), .hidden, .symbol("!")]])
     }
 
     func testGenreAndYear() {

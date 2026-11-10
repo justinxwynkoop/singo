@@ -46,7 +46,7 @@ struct RoundView: View {
             Button("End round", role: .destructive) { dismiss() }
             Button("Keep playing", role: .cancel) { controller.releasePause() }
         }
-        .sheet(isPresented: $controller.showingCalledList, onDismiss: controller.calledListClosed) {
+        .fullScreenCover(isPresented: $controller.showingCalledList, onDismiss: controller.calledListClosed) {
             CalledSongsView(controller: controller)
         }
         .onChange(of: scenePhase) { _, phase in
@@ -128,12 +128,15 @@ struct RoundView: View {
     private var hints: some View {
         let song = controller.currentSong
         return VStack(alignment: .leading, spacing: 56) {
-            HintLine(label: "Genre · Year", value: song?.genreAndYear ?? "Not listed",
-                     visible: engine.isShowing(.genreAndYear))
-            HintLine(label: "Title", value: engine.titleHint ?? "",
-                     visible: engine.isShowing(.title))
-            HintLine(label: "Artist", value: song?.artistName ?? "",
-                     visible: engine.isShowing(.artist))
+            HintLine(label: "Genre · Year", visible: engine.isShowing(.genreAndYear)) {
+                HintText(song?.genreAndYear ?? "Not listed")
+            }
+            HintLine(label: "Title", visible: engine.isShowing(.title)) {
+                TitleBlanks(words: engine.titleHint)
+            }
+            HintLine(label: "Artist", visible: engine.isShowing(.artist)) {
+                HintText(song?.artistName ?? "")
+            }
         }
     }
 
@@ -176,7 +179,7 @@ struct RoundView: View {
             .focused($focus, equals: .addTime)
 
             Button { controller.openCalledList() } label: {
-                Label("Called songs (\(engine.called.count))", systemImage: "list.number")
+                CalledSongsLabel(count: engine.called.count)
             }
             .focused($focus, equals: .called)
 
@@ -199,7 +202,7 @@ struct RoundView: View {
                 .foregroundStyle(.white.opacity(0.6))
             HStack(spacing: 30) {
                 Button { controller.openCalledList() } label: {
-                    Label("Called songs", systemImage: "list.number")
+                    CalledSongsLabel(count: engine.called.count)
                 }
                 .focused($focus, equals: .called)
                 Button { dismiss() } label: {
@@ -259,25 +262,138 @@ private struct DiscView: View {
     }
 }
 
-private struct HintLine: View {
+private struct HintLine<Content: View>: View {
     let label: String
-    let value: String
     let visible: Bool
+    @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             Text(label.uppercased())
                 .font(.system(size: 24, weight: .semibold))
                 .tracking(3)
                 .foregroundStyle(.white.opacity(0.4))
-            Text(value)
-                .font(.system(size: 54, weight: .semibold))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-                .minimumScaleFactor(0.6)
+            content
         }
         .opacity(visible ? 1 : 0)
         .animation(.easeIn(duration: 1.2), value: visible)
+    }
+}
+
+private struct HintText: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 54, weight: .semibold))
+            .foregroundStyle(.white)
+            .lineLimit(2)
+            .minimumScaleFactor(0.6)
+    }
+}
+
+/// The title as blanks, one per letter, e.g. "H _ _   J _ _ _".
+private struct TitleBlanks: View {
+    let words: [[HintGlyph]]
+
+    var body: some View {
+        FlowLayout(spacing: 40, lineSpacing: 22) {
+            ForEach(words.indices, id: \.self) { w in
+                HStack(spacing: 8) {
+                    ForEach(words[w].indices, id: \.self) { g in
+                        GlyphCell(glyph: words[w][g])
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct GlyphCell: View {
+    let glyph: HintGlyph
+
+    var body: some View {
+        switch glyph {
+        case .hidden:
+            slot(Text(" "))
+        case .shown(let character):
+            slot(Text(String(character)))
+        case .symbol(let character):
+            Text(String(character))
+                .font(.system(size: 46, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(height: 64)
+        }
+    }
+
+    private func slot(_ text: Text) -> some View {
+        VStack(spacing: 4) {
+            text
+                .font(.system(size: 46, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 54)
+            Capsule()
+                .fill(.white.opacity(0.7))
+                .frame(width: 34, height: 5)
+        }
+    }
+}
+
+/// Lays children out left to right, wrapping to a new line when they don't fit.
+private struct FlowLayout: Layout {
+    var spacing: CGFloat
+    var lineSpacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let frames = arrange(subviews, maxWidth: proposal.width ?? .infinity)
+        let width = frames.map(\.maxX).max() ?? 0
+        let height = frames.map(\.maxY).max() ?? 0
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let frames = arrange(subviews, maxWidth: bounds.width)
+        for (subview, frame) in zip(subviews, frames) {
+            subview.place(at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
+                          proposal: ProposedViewSize(frame.size))
+        }
+    }
+
+    private func arrange(_ subviews: Subviews, maxWidth: CGFloat) -> [CGRect] {
+        var frames: [CGRect] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                x = 0
+                y += rowHeight + lineSpacing
+                rowHeight = 0
+            }
+            frames.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return frames
+    }
+}
+
+/// "Called songs" with the count in a badge that's easy to read across the room.
+struct CalledSongsLabel: View {
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: "list.number")
+            Text("Called songs")
+            Text("\(count)")
+                .font(.system(size: 30, weight: .bold).monospacedDigit())
+                .padding(.horizontal, 14)
+                .frame(minWidth: 48, minHeight: 48)
+                .background(Capsule().fill(.white.opacity(0.2)))
+        }
     }
 }
 
@@ -294,11 +410,11 @@ private struct HostButtonBody: View {
 
     var body: some View {
         configuration.label
-            .font(.system(size: 28, weight: .semibold))
-            .padding(.horizontal, 36)
-            .padding(.vertical, 18)
-            .foregroundStyle(.white.opacity(isFocused ? 1 : 0.4))
-            .background(Capsule().fill(.white.opacity(isFocused ? 0.25 : 0.06)))
+            .font(.system(size: 36, weight: .semibold))
+            .padding(.horizontal, 44)
+            .padding(.vertical, 24)
+            .foregroundStyle(.white.opacity(isFocused ? 1 : 0.6))
+            .background(Capsule().fill(.white.opacity(isFocused ? 0.25 : 0.1)))
             .scaleEffect(configuration.isPressed ? 0.95 : (isFocused ? 1.06 : 1))
             .animation(.easeOut(duration: 0.15), value: isFocused)
     }

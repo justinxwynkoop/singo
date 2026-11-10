@@ -53,6 +53,15 @@ final class GameController: Identifiable {
         UIApplication.shared.isIdleTimerDisabled = true
         handle(engine.start())
         startClock()
+        Task { await checkSubscription() }
+    }
+
+    /// Catalog songs only play with an active Apple Music subscription.
+    private func checkSubscription() async {
+        guard let subscription = try? await MusicSubscription.current else { return }
+        if !subscription.canPlayCatalogContent {
+            show("This Apple TV's Apple Music account can't play Apple Music songs. Check that it has an active subscription.", for: nil)
+        }
     }
 
     func end() {
@@ -177,7 +186,7 @@ final class GameController: Identifiable {
                     engine.setPaused(true)
                     show("Apple Music isn't playing. Check the subscription and network, then press Play. (\(error.localizedDescription))", for: nil)
                 } else {
-                    show("Couldn't play “\(info.title)”, skipped it.")
+                    show("Couldn't play “\(info.title)” (\(error.localizedDescription)), skipped it.")
                     handle(engine.skip())
                 }
             }

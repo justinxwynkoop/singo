@@ -36,7 +36,7 @@ real Apple TV.
    | ---- | ------------ |
    | 0s   | Black screen, song starts 45s in, countdown ring begins |
    | 10s  | Genre and release year |
-   | 15s  | Title hint (word count and/or first letter) |
+   | 15s  | Title hint: a blank per letter, like `H _ _   J _ _ _` |
    | 20s  | Album art fades in heavily blurred, sharpening until 30s |
    | 25s  | Artist |
    | 30s  | Reveal: title, artist, sharp art; added to the called list |
@@ -52,7 +52,7 @@ real Apple TV.
 | Play/Pause | Pause or resume the song and the clock |
 | Replay | Restart the clip from the start offset (hints already shown stay up) |
 | +15 sec | Before the reveal: pushes the reveal back. After: keeps the answer up longer |
-| Called songs | Pauses and shows every revealed song, in order or A–Z, to check a Singo |
+| Called songs | Pauses and opens a full-screen list of every revealed song, in order or A–Z, to check a Singo |
 | Skip / Next | Next song. A song skipped before its reveal isn't added to the called list |
 | Menu/Back | Pauses and asks whether to end the round |
 
@@ -68,7 +68,7 @@ Singo/
   Core/                   Game rules, no Apple frameworks (unit tested)
     RoundEngine.swift     Timer state machine: hints, reveal, advance, called list
     RoundSettings.swift   Every timing setting, hint schedule, start offset
-    TitleHint.swift       "3 words · starts with H"
+    TitleHint.swift       Title as blanks: "H _ _   J _ _ _"
     SongInfo.swift        Song details the game needs
   Music/                  MusicKit and app state
     MusicLibrary.swift    Permission, playlists, playlist songs
@@ -108,6 +108,10 @@ Or open `Package.swift` in Xcode and press ⌘U.
 - If three songs in a row fail to play (no subscription, no network), the round
   pauses with a message instead of running through the playlist.
 - The Apple TV won't go to its screensaver during a round.
+- Title hint styles (set before the round): blanks only, blanks + first letter
+  (default), or blanks + first letter of each word.
+- If a song won't play, the reason shows on screen. Playback details also
+  print in Xcode's console (filter for "playback") while running from Xcode.
 - There's no app icon yet; the Apple TV home screen shows a blank tile.
 - Builds signed with a paid developer account last a year; reinstall from Xcode
   after that.

@@ -1,10 +1,11 @@
 import MusicKit
 import SwiftUI
 
-/// Every song revealed so far, for checking a Singo claim.
-/// The round pauses while this is open and picks up again when it closes.
+/// Every song revealed so far, for checking a Singo claim. Opens full screen;
+/// the round pauses while it's open and picks up again when it closes.
 struct CalledSongsView: View {
     let controller: GameController
+    @Environment(\.dismiss) private var dismiss
 
     enum Order: String, CaseIterable {
         case called = "Order called"
@@ -26,52 +27,107 @@ struct CalledSongsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 30) {
-            HStack {
-                Text("Called songs (\(rows.count))")
-                    .font(.system(size: 52, weight: .bold))
-                Spacer()
-                Picker("Sort", selection: $order) {
-                    ForEach(Order.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 600)
-            }
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-            if rows.isEmpty {
-                Spacer()
-                Text("No songs called yet.")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                Spacer()
-            } else {
-                List(rows) { entry in
-                    let song = controller.info(for: entry.song)
-                    // A focusable row so the remote can scroll the list.
-                    Button {} label: {
-                        HStack(spacing: 30) {
-                            Text("\(entry.number)")
-                                .font(.system(size: 30, weight: .semibold).monospacedDigit())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 70, alignment: .trailing)
-                            if let artwork = controller.artwork(for: song.id) {
-                                ArtworkImage(artwork, width: 80, height: 80)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                            }
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(song.title).font(.system(size: 34, weight: .semibold))
-                                Text(song.artistName).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 40) {
+                HStack(alignment: .center, spacing: 40) {
+                    Text("Called songs")
+                        .font(.system(size: 64, weight: .bold))
+                    Text("\(rows.count)")
+                        .font(.system(size: 48, weight: .bold).monospacedDigit())
+                        .padding(.horizontal, 24)
+                        .frame(minWidth: 80, minHeight: 80)
+                        .background(Capsule().fill(.white.opacity(0.15)))
+                    Spacer()
+                    Picker("Sort", selection: $order) {
+                        ForEach(Order.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 620)
+                    Button { dismiss() } label: {
+                        Label("Back to round", systemImage: "arrow.uturn.backward")
+                    }
+                    .buttonStyle(HostButtonStyle())
+                }
+
+                if rows.isEmpty {
+                    Spacer()
+                    Text("No songs called yet.")
+                        .font(.system(size: 44, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .frame(maxWidth: .infinity)
+                    Spacer()
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(rows) { entry in
+                                row(entry)
                             }
                         }
+                        .padding(.vertical, 20)
                     }
+                    .frame(maxHeight: .infinity)
                 }
             }
-
-            Text("Press Menu to go back to the round.")
-                .font(.system(size: 24))
-                .foregroundStyle(.secondary)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 80)
+            .padding(.vertical, 60)
         }
-        .padding(60)
+        .onExitCommand { dismiss() }
+    }
+
+    private func row(_ entry: CalledSong) -> some View {
+        let song = controller.info(for: entry.song)
+        // A button so the remote can focus each row and scroll the list.
+        return Button {} label: {
+            HStack(spacing: 36) {
+                Text("\(entry.number)")
+                    .font(.system(size: 44, weight: .bold).monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.5))
+                    .frame(width: 90, alignment: .trailing)
+                if let artwork = controller.artwork(for: song.id) {
+                    ArtworkImage(artwork, width: 110, height: 110)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                } else {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.white.opacity(0.08))
+                        .frame(width: 110, height: 110)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(song.title)
+                        .font(.system(size: 46, weight: .semibold))
+                        .lineLimit(1)
+                    Text(song.artistName)
+                        .font(.system(size: 34))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(1)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 30)
+            .padding(.vertical, 18)
+        }
+        .buttonStyle(CalledRowStyle())
+    }
+}
+
+/// Rows light up gently when focused instead of the default bright tvOS card.
+private struct CalledRowStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        CalledRowBody(configuration: configuration)
+    }
+}
+
+private struct CalledRowBody: View {
+    let configuration: ButtonStyleConfiguration
+    @Environment(\.isFocused) private var isFocused
+
+    var body: some View {
+        configuration.label
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 20).fill(.white.opacity(isFocused ? 0.18 : 0.05)))
+            .scaleEffect(isFocused ? 1.02 : 1)
+            .animation(.easeOut(duration: 0.15), value: isFocused)
     }
 }

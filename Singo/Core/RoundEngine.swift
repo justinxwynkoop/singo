@@ -102,9 +102,9 @@ public struct RoundEngine: Sendable {
         return min(max((hintClock - start) / span, 0), 1)
     }
 
-    /// Title hint text for the current song, e.g. "3 words · starts with H".
-    public var titleHint: String? {
-        currentSong.map { TitleHint.text(for: $0.title, style: settings.titleHintStyle) }
+    /// Title hint for the current song as words of blanks, e.g. "H _ _   J _ _ _".
+    public var titleHint: [[HintGlyph]] {
+        currentSong.map { TitleHint.glyphs(for: $0.title, style: settings.titleHintStyle) } ?? []
     }
 
     // MARK: - Driving the round
