@@ -49,7 +49,7 @@ real Apple TV.
    | 15s   | Album art fades in heavily blurred, sharpening until 30s |
    | 22.5s | Artist |
    | 30s   | Reveal: title and sharp art (hints that are off stay off) |
-   | 35s   | Next song (or wait for the host, if auto-advance is off) |
+   | 38s   | Next song starts; the music plays on through the answer (8 seconds, set in Round Setup), or waits for the host if auto-advance is off |
 
    Turn a hint off and the rest spread out to fill the gap; turn the title
    hint on (non-fill-in) and it takes the first slot.

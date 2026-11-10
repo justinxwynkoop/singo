@@ -152,6 +152,10 @@ struct RoundSetupView: View {
                              detail: "Skip past long intros",
                              options: startOffsets.map { Choice($0, $0 == 0 ? "Beginning" : seconds($0)) },
                              selection: $store.settings.startOffset)
+            ChoiceSettingRow(icon: "eye", title: "Answer stays up for",
+                             detail: "The song keeps playing, then the next one starts",
+                             options: [5.0, 8, 10, 15].map { Choice($0, seconds($0)) },
+                             selection: $store.settings.revealHold)
             ChoiceSettingRow(icon: "plus.circle", title: "Add-time button",
                              detail: "Extra time each press gives",
                              options: addTimeSteps.map { Choice($0, "+" + seconds($0)) },

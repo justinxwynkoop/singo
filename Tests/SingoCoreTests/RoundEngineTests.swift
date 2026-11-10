@@ -113,7 +113,8 @@ final class RoundEngineTests: XCTestCase {
         XCTAssertEqual(round.phase, .revealed)
         XCTAssertEqual(round.called.map(\.song), [first])
 
-        let next = run(&round, for: 5)
+        XCTAssertTrue(run(&round, for: 7.5).isEmpty)  // answer stays up 8 s
+        let next = run(&round, for: 0.5)
         XCTAssertEqual(next, [.play(round.songs[1], startTime: 45)])
         XCTAssertEqual(round.phase, .playing)
         XCTAssertEqual(round.elapsed, 0)
@@ -194,7 +195,7 @@ final class RoundEngineTests: XCTestCase {
         _ = run(&round, for: 5)
         XCTAssertEqual(round.phase, .revealed)
         XCTAssertEqual(round.index, 0)
-        _ = run(&round, for: 15)
+        _ = run(&round, for: 18)   // 30 + 8 + 15 = 53 s
         XCTAssertEqual(round.index, 1)
     }
 
@@ -210,7 +211,7 @@ final class RoundEngineTests: XCTestCase {
 
     func testRoundFinishesAfterLastSong() {
         var round = engine(2)
-        let events = run(&round, for: 70)
+        let events = run(&round, for: 80)   // 2 songs × 38 s
         XCTAssertEqual(events.last, .finished)
         XCTAssertEqual(round.phase, .finished)
         XCTAssertNil(round.currentSong)
@@ -246,11 +247,19 @@ final class RoundEngineTests: XCTestCase {
         XCTAssertEqual(settings.enabledHints, RoundSettings().enabledHints)
     }
 
+    func testOldSavedAnswerHoldIsReplacedByNewDefault() throws {
+        let json = #"{"revealHold": 5, "clipLength": 20}"#
+        let settings = try JSONDecoder().decode(RoundSettings.self, from: Data(json.utf8))
+        XCTAssertEqual(settings.revealHold, 8)
+        XCTAssertEqual(settings.clipLength, 20)
+    }
+
     func testSettingsRoundTrip() throws {
         var settings = RoundSettings()
         settings.setEnabled(.art, false)
         settings.startOffset = 15
         settings.background = .animated
+        settings.revealHold = 15
         let data = try JSONEncoder().encode(settings)
         XCTAssertEqual(try JSONDecoder().decode(RoundSettings.self, from: data), settings)
     }
@@ -266,7 +275,7 @@ final class RoundEngineTests: XCTestCase {
     func testShortSongsStartEarlier() {
         let settings = RoundSettings()
         XCTAssertEqual(settings.startTime(forSongDuration: 300), 45)
-        XCTAssertEqual(settings.startTime(forSongDuration: 60), 25)
+        XCTAssertEqual(settings.startTime(forSongDuration: 60), 22)  // 60 - 30 - 8
         XCTAssertEqual(settings.startTime(forSongDuration: 20), 0)
         XCTAssertEqual(settings.startTime(forSongDuration: nil), 45)
     }

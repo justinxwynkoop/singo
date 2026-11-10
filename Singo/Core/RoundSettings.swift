@@ -62,14 +62,15 @@ public enum BackgroundStyle: String, CaseIterable, Codable, Sendable {
 }
 
 /// Every timing in a round. Defaults: 30 s clip starting 45 s into the song,
-/// hints at 10/15/20/25 s, reveal at 30 s, next song at 35 s.
+/// hints spread over the clip, reveal at 30 s, next song at 38 s.
 public struct RoundSettings: Codable, Equatable, Sendable {
     /// Seconds of music before the reveal.
     public var clipLength: TimeInterval = 30
     /// Where in the song the clip starts, to skip long intros.
     public var startOffset: TimeInterval = 45
-    /// Seconds the reveal stays up before the next song starts.
-    public var revealHold: TimeInterval = 5
+    /// Seconds the answer stays up, with the music still playing, before the
+    /// next song starts.
+    public var revealHold: TimeInterval = 8
     /// How much the "add time" button adds.
     public var addTimeStep: TimeInterval = 15
     public var titleHintStyle: TitleHintStyle = .firstLetter
@@ -92,7 +93,10 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     // Decode field by field so settings saved by an older version still load,
     // with defaults for anything new.
     private enum CodingKeys: String, CodingKey {
-        case clipLength, startOffset, revealHold, addTimeStep, titleHintStyle,
+        // Saved under a new name so older saves (which stored 5 seconds
+        // without a way to change it) pick up the new 8-second default.
+        case revealHold = "answerSeconds"
+        case clipLength, startOffset, addTimeStep, titleHintStyle,
              autoAdvance, enabledHints, background
     }
 
