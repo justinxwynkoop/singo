@@ -40,7 +40,7 @@ real Apple TV.
    | Time | What happens |
    | ---- | ------------ |
    | 0s   | Black screen, song starts 45s in, countdown ring begins |
-   | 10s  | Title hint, if turned on: a blank per letter, like `H _ _   J _ _ _` |
+   | 10s  | Title hint, if turned on: a blank per letter, like `H _ _   J _ _ _` (fill-in styles start at 0s) |
    | 15s  | Genre and release year (each can be turned off) |
    | 20s  | Album art fades in heavily blurred, sharpening until 30s |
    | 25s  | Artist |
@@ -115,12 +115,14 @@ Or open `Package.swift` in Xcode and press ⌘U.
 - The Apple TV won't go to its screensaver during a round.
 - Title hint styles (set before the round): off (default), blanks only,
   blanks + first letter, blanks + first letter of each word, or "fills in as
-  it plays": starts as blanks and fills in letters (first letters first)
-  until about 70% are showing at the end of the clip. "Fills in, no blanks"
+  it plays": starts as blanks when the song starts and fills in letters
+  (first letters first) until about 70% are showing at the end of the clip. "Fills in, no blanks"
   does the same without the lines under each letter.
-- Game screen: the album-art disc sits in the middle with the countdown
-  below it; the title hint is above it, genre and year to the left, artist
-  to the right.
+- Game screen: the album art is a big rounded square in the middle with a
+  progress line around its edge that fills clockwise; the countdown is below
+  it, the title hint above, genre and year on the left, artist on the right.
+- Hints you turn off stay off, even at the reveal. The reveal always shows
+  the song title.
 - **Turn on Do Not Disturb before a round** (hold the TV button on the remote
   to open Control Center). Otherwise tvOS pops up a "Now Playing" card with
   the song title and artist each time a song starts. The setup screen shows

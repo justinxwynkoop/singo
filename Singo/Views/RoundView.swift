@@ -1,8 +1,9 @@
 import MusicKit
 import SwiftUI
 
-/// The game screen: black background, album-art disc in the middle with the
-/// countdown below it, hints around it, then the reveal.
+/// The game screen: black background, album art as a big square in the
+/// middle with a progress ring around it and the countdown below, hints
+/// around it, then the reveal.
 ///
 /// Remote:
 /// - Play/Pause button: pause or resume
@@ -57,29 +58,32 @@ struct RoundView: View {
 
     // MARK: - Playing and reveal
     //
-    // Layout: title across the top, the album-art disc in the middle with the
-    // countdown below it, genre and year to its left, artist to its right.
+    // Layout: title across the top, the album art as a big square in the
+    // middle with a progress ring around its edge and the countdown below,
+    // genre and year filling the left side, artist filling the right.
 
     private var stage: some View {
         let song = controller.currentSong
         let revealed = engine.phase == .revealed
         return VStack(spacing: 0) {
-            HStack {
-                Text("Song \(engine.songNumber) of \(engine.songs.count)")
-                Spacer()
-                if engine.isPaused {
-                    Label("Paused", systemImage: "pause.fill")
-                }
-            }
-            .font(.system(size: 28, weight: .medium))
-            .foregroundStyle(.white.opacity(0.4))
-
             titleArea
                 .frame(maxWidth: .infinity)
                 .frame(height: 200)
+                .overlay(alignment: .topLeading) {
+                    Text("Song \(engine.songNumber) of \(engine.songs.count)")
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+                .overlay(alignment: .topTrailing) {
+                    if engine.isPaused {
+                        Label("Paused", systemImage: "pause.fill")
+                            .font(.system(size: 28, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                }
 
             HStack(alignment: .center, spacing: 70) {
-                VStack(alignment: .trailing, spacing: 70) {
+                VStack(alignment: .trailing, spacing: 90) {
                     HintLine(label: "Genre", alignment: .trailing, visible: engine.isShowing(.genre)) {
                         HintText(song?.genre ?? "Not listed", alignment: .trailing)
                     }
@@ -87,9 +91,9 @@ struct RoundView: View {
                         HintText(song?.releaseYear.map(String.init) ?? "Not listed", alignment: .trailing)
                     }
                 }
-                .frame(width: 480, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
 
-                DiscView(
+                ArtFrame(
                     progress: engine.progress,
                     artwork: song.flatMap { controller.artwork(for: $0.id) },
                     showArt: engine.isShowing(.art),
@@ -101,28 +105,27 @@ struct RoundView: View {
                 HintLine(label: "Artist", alignment: .leading, visible: engine.isShowing(.artist)) {
                     HintText(song?.artistName ?? "", alignment: .leading)
                 }
-                .frame(width: 480, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Text(statusLine)
-                .font(.system(size: 34, weight: .medium).monospacedDigit())
-                .foregroundStyle(.white.opacity(0.55))
-                .frame(height: 48)
-                .padding(.top, 24)
+                .font(.system(size: 38, weight: .semibold).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.6))
+                .frame(height: 50)
+                .padding(.top, 20)
 
-            Spacer(minLength: 10)
+            Spacer(minLength: 0)
 
             if let notice = controller.notice {
                 Text(notice)
                     .font(.system(size: 26))
                     .foregroundStyle(.yellow.opacity(0.8))
                     .multilineTextAlignment(.center)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 16)
             }
 
             controls
         }
-        .padding(.horizontal, 40)
         .animation(.easeInOut(duration: 0.6), value: engine.phase)
     }
 
@@ -217,8 +220,9 @@ struct RoundView: View {
     }
 }
 
-/// Countdown ring with the album art inside it as a circle.
-private struct DiscView: View {
+/// The album art as a big rounded square, with a progress line around its
+/// edge that fills clockwise from the top center over the clip.
+private struct ArtFrame: View {
     let progress: Double
     let artwork: Artwork?
     let showArt: Bool
@@ -226,22 +230,32 @@ private struct DiscView: View {
     let dimmed: Bool
     let revealed: Bool
 
-    private let size: CGFloat = 440
-    private var artSize: CGFloat { size - 60 }
+    private let size: CGFloat = 560
+    private let lineWidth: CGFloat = 12
+    private let gap: CGFloat = 14
+    private let corner: CGFloat = 40
+    private var artSize: CGFloat { size - 2 * (lineWidth + gap) }
+    private var artCorner: CGFloat { corner - lineWidth / 2 - gap / 2 }
 
     var body: some View {
         ZStack {
-            Circle()
-                .stroke(.white.opacity(0.12), lineWidth: 12)
-            Circle()
+            EdgeOutline(cornerRadius: corner)
+                .stroke(.white.opacity(0.12), lineWidth: lineWidth)
+                .padding(lineWidth / 2)
+            EdgeOutline(cornerRadius: corner)
                 .trim(from: 0, to: progress)
                 .stroke(revealed ? Color.green : .white.opacity(dimmed ? 0.35 : 0.9),
-                        style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+                .padding(lineWidth / 2)
                 .animation(.linear(duration: 0.15), value: progress)
+
+            RoundedRectangle(cornerRadius: artCorner, style: .continuous)
+                .fill(.white.opacity(0.04))
+                .frame(width: artSize, height: artSize)
+
             art
                 .frame(width: artSize, height: artSize)
-                .clipShape(Circle())
+                .clipShape(RoundedRectangle(cornerRadius: artCorner, style: .continuous))
                 .opacity(showArt ? 1 : 0)
                 .animation(.easeIn(duration: 1.5), value: showArt)
         }
@@ -256,12 +270,38 @@ private struct DiscView: View {
                 .animation(.linear(duration: 0.15), value: sharpness)
         } else {
             ZStack {
-                Circle().fill(.white.opacity(0.06))
+                Color.white.opacity(0.06)
                 Image(systemName: "music.note")
-                    .font(.system(size: 120))
+                    .font(.system(size: 140))
                     .foregroundStyle(.white.opacity(0.3))
             }
         }
+    }
+}
+
+/// A rounded-square outline that starts at the top center and runs
+/// clockwise, so trimming it fills like a clock.
+private struct EdgeOutline: Shape {
+    var cornerRadius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let r = min(cornerRadius, rect.width / 2, rect.height / 2)
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
+        path.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.minY),
+                    tangent2End: CGPoint(x: rect.maxX, y: rect.minY + r), radius: r)
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
+        path.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.maxY),
+                    tangent2End: CGPoint(x: rect.maxX - r, y: rect.maxY), radius: r)
+        path.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.maxY),
+                    tangent2End: CGPoint(x: rect.minX, y: rect.maxY - r), radius: r)
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + r))
+        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.minY),
+                    tangent2End: CGPoint(x: rect.minX + r, y: rect.minY), radius: r)
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -274,9 +314,9 @@ private struct HintLine<Content: View>: View {
     var body: some View {
         VStack(alignment: alignment, spacing: 14) {
             Text(label.uppercased())
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: 28, weight: .semibold))
                 .tracking(3)
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(.white.opacity(0.45))
             content
         }
         .opacity(visible ? 1 : 0)
@@ -295,11 +335,11 @@ private struct HintText: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 54, weight: .semibold))
+            .font(.system(size: 68, weight: .bold))
             .foregroundStyle(.white)
             .multilineTextAlignment(alignment)
-            .lineLimit(2)
-            .minimumScaleFactor(0.6)
+            .lineLimit(3)
+            .minimumScaleFactor(0.5)
     }
 }
 

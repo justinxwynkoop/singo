@@ -178,10 +178,10 @@ struct RoundSetupView: View {
         guard settings.isEnabled(.title) else { return "Hidden until the answer" }
         let style = settings.titleHintStyle
         if style == .fillInLettersOnly {
-            return "From \(at(.title)), letters appear one by one with no blanks"
+            return "From the start, letters appear one by one with no blanks"
         }
         let example = TitleHint.text(for: "Hey Jude", style: style, fill: style.fillsIn ? 1 : 0)
-        let when = style.fillsIn ? "From \(at(.title)), fills to" : "From \(at(.title)):"
+        let when = style.fillsIn ? "From the start, fills to" : "From \(at(.title)):"
         return "\(when)  \(example)  (Hey Jude)"
     }
 
@@ -454,7 +454,8 @@ private struct HintTimeline: View {
             byTime[settings.time(of: hint), default: []].append(name)
         }
         let clip = max(settings.clipLength, 1)
-        var result = [Mark(fraction: 0, time: "0s", label: "Song starts")]
+        let atStart = (["Song starts"] + (byTime[0] ?? [])).joined(separator: " & ")
+        var result = [Mark(fraction: 0, time: "0s", label: atStart)]
         for time in byTime.keys.sorted() where time > 0 && time < clip {
             result.append(Mark(fraction: time / clip, time: "\(Int(time))s",
                                label: byTime[time]!.joined(separator: " & ")))

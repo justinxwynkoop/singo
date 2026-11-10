@@ -86,7 +86,9 @@ public struct RoundEngine: Sendable {
     /// Whether `hint` should be on screen now.
     public func isShowing(_ hint: Hint) -> Bool {
         switch phase {
-        case .revealed: return true
+        // Hints the host turned off stay off, even at the reveal. (The
+        // reveal screen shows the song title on its own.)
+        case .revealed: return settings.isEnabled(hint)
         case .finished: return false
         case .playing: return settings.isEnabled(hint) && hintClock >= settings.time(of: hint)
         }

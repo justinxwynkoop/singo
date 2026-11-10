@@ -96,8 +96,10 @@ public struct RoundSettings: Codable, Equatable, Sendable {
         enabledHints = (try? c.decodeIfPresent(Set<Hint>.self, forKey: .enabledHints)) ?? enabledHints
     }
 
-    /// Seconds into the clip when `hint` appears.
+    /// Seconds into the clip when `hint` appears. A fill-in title starts with
+    /// the song so it has the whole clip to fill in.
     public func time(of hint: Hint) -> TimeInterval {
+        if hint == .title, titleHintStyle.fillsIn { return 0 }
         let fraction = min(max(hintFractions[hint] ?? 1, 0), 1)
         return fraction * clipLength
     }

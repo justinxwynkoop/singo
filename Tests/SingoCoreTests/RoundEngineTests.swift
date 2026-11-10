@@ -171,15 +171,18 @@ final class RoundEngineTests: XCTestCase {
         XCTAssertEqual(round.start(), [.finished])
     }
 
-    func testTurnedOffHintStaysHiddenUntilReveal() {
+    func testTurnedOffHintStaysOffEvenAtReveal() {
         var settings = RoundSettings()
-        settings.setEnabled(.title, false)
+        settings.setEnabled(.artist, false)
         var round = engine(settings: settings)
         _ = run(&round, for: 29)
-        XCTAssertFalse(round.isShowing(.title))
-        XCTAssertTrue(round.isShowing(.artist))
+        XCTAssertFalse(round.isShowing(.artist))
+        XCTAssertTrue(round.isShowing(.art))
         _ = run(&round, for: 1)
-        XCTAssertTrue(round.isShowing(.title))
+        XCTAssertEqual(round.phase, .revealed)
+        XCTAssertFalse(round.isShowing(.artist))
+        XCTAssertFalse(round.isShowing(.title))  // title hint is off by default
+        XCTAssertTrue(round.isShowing(.genre))
     }
 
     func testOldSavedSettingsStillLoad() throws {
@@ -278,13 +281,15 @@ final class TitleHintTests: XCTestCase {
         var settings = RoundSettings()
         settings.setEnabled(.title, true)
         settings.titleHintStyle = .fillIn
+        XCTAssertEqual(settings.time(of: .title), 0)  // fill-in starts with the song
         var round = engine(settings: settings)
-        _ = run(&round, for: 10)
-        XCTAssertEqual(settings.titleFill(at: round.hintClock), 0)
-        _ = run(&round, for: 10)
+        XCTAssertTrue(round.isShowing(.title))
+        _ = run(&round, for: 15)
         XCTAssertEqual(settings.titleFill(at: round.hintClock), 0.5, accuracy: 0.001)
         round.addTime()   // more time must not take letters back
         XCTAssertEqual(settings.titleFill(at: round.hintClock), 0.5, accuracy: 0.001)
+        settings.titleHintStyle = .blanks
+        XCTAssertEqual(settings.time(of: .title), 10)
     }
 
     func testDetailsRespectToggles() {
