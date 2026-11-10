@@ -26,6 +26,59 @@ The Apple TV needs to be signed into an Apple Music account with an active
 subscription. The tvOS Simulator can't play Apple Music, so test playback on a
 real Apple TV.
 
+## How Apple Music works with the app
+
+**The app doesn't sign in to anything.** There's no login screen and no
+password in the code. The app uses Apple's MusicKit, which works through
+whichever Apple Account is signed into Apple Music **on the Apple TV the app
+is running on**:
+
+- **Playlists:** the playlist screen shows the library of the account signed
+  into that Apple TV.
+- **Playback:** songs stream from that account, so it needs an active Apple
+  Music subscription.
+- **Permission:** the first time the app runs on an Apple TV, it asks for
+  Apple Music access. That's a one-time "Allow" on the TV, not a login.
+
+So it depends on the Apple TV, not on who built the app:
+
+| Situation | Whose playlists show up |
+| --------- | ----------------------- |
+| You install the app on your Apple TV | Yours (the account on your Apple TV) |
+| Your brother installs the app on his Apple TV | His |
+| Your brother installs from his Mac onto your Apple TV | Yours: it's still your Apple TV |
+| An Apple TV with several people set up | Whoever is the current user; switch in Control Center (hold the TV button) |
+
+To check or change the account: on the Apple TV, **Settings → Users and
+Accounts** (and **Settings → Apps → Music** for the Music app's own settings).
+To switch accounts for a game night, switch the current user in Control
+Center or sign a different account in there.
+
+### The two Apple accounts involved
+
+These are separate and don't affect each other:
+
+1. **The developer account in Xcode** (Xcode → Settings → Apple Accounts). It
+   only signs the app so the Apple TV will install it, and it's what MusicKit
+   is turned on for (the `family.singonight.app` App ID). It has no access to
+   anyone's music, photos or messages.
+2. **The Apple Music account on the Apple TV.** This is where the playlists
+   and songs come from.
+
+### Setting it up on another Mac (e.g. your brother's)
+
+1. Clone the repo and open `Singo.xcodeproj`.
+2. **Signing:** either
+   - sign in to Xcode with an account on the same developer team, and the
+     existing App ID with MusicKit already works; or
+   - use his own paid developer team: change the bundle ID under
+     **Signing & Capabilities** to something unique (e.g.
+     `com.hisname.singo`), then register that ID in the developer portal and
+     tick **MusicKit** under App Services. Without MusicKit on the App ID,
+     the app can't load playlists or play songs.
+3. Pair his Apple TV with Xcode and press ⌘R. The first launch asks for Apple
+   Music access on that TV, then shows that TV's playlists.
+
 ## Playing a round
 
 1. Pick a playlist. The setup screen shows the playlist on the left with
