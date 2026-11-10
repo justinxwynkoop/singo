@@ -119,7 +119,7 @@ Or open `Package.swift` in Xcode and press ⌘U.
   until about 70% are showing at the end of the clip. "Fills in, no blanks"
   does the same without the lines under each letter.
 - Game screen: the album-art disc sits in the middle with the countdown
-  inside it; the title hint is above it, genre and year to the left, artist
+  below it; the title hint is above it, genre and year to the left, artist
   to the right.
 - **Turn on Do Not Disturb before a round** (hold the TV button on the remote
   to open Control Center). Otherwise tvOS pops up a "Now Playing" card with

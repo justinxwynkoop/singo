@@ -1,8 +1,8 @@
 import MusicKit
 import SwiftUI
 
-/// The game screen: black background, album-art disc with the countdown in
-/// the middle, hints around it, then the reveal.
+/// The game screen: black background, album-art disc in the middle with the
+/// countdown below it, hints around it, then the reveal.
 ///
 /// Remote:
 /// - Play/Pause button: pause or resume
@@ -57,8 +57,8 @@ struct RoundView: View {
 
     // MARK: - Playing and reveal
     //
-    // Layout: title across the top, the album-art disc with the countdown in
-    // the middle, genre and year to its left, artist to its right.
+    // Layout: title across the top, the album-art disc in the middle with the
+    // countdown below it, genre and year to its left, artist to its right.
 
     private var stage: some View {
         let song = controller.currentSong
@@ -95,7 +95,6 @@ struct RoundView: View {
                     showArt: engine.isShowing(.art),
                     sharpness: engine.artSharpness,
                     dimmed: engine.isPaused,
-                    centerText: centerText,
                     revealed: revealed
                 )
 
@@ -106,10 +105,10 @@ struct RoundView: View {
             }
 
             Text(statusLine)
-                .font(.system(size: 30, weight: .medium).monospacedDigit())
+                .font(.system(size: 34, weight: .medium).monospacedDigit())
                 .foregroundStyle(.white.opacity(0.55))
-                .frame(height: 44)
-                .padding(.top, 18)
+                .frame(height: 48)
+                .padding(.top, 24)
 
             Spacer(minLength: 10)
 
@@ -154,18 +153,13 @@ struct RoundView: View {
         }
     }
 
-    /// Countdown in the middle of the disc while the song plays.
-    private var centerText: String? {
-        guard engine.phase == .playing else { return nil }
-        if controller.isBuffering { return "…" }
-        let left = Int(engine.remaining.rounded(.up))
-        return String(format: "%d:%02d", left / 60, left % 60)
-    }
-
     private var statusLine: String {
         if controller.isBuffering { return "Loading…" }
         switch engine.phase {
-        case .playing, .finished:
+        case .playing:
+            let left = Int(engine.remaining.rounded(.up))
+            return String(format: "%d:%02d", left / 60, left % 60)
+        case .finished:
             return ""
         case .revealed:
             guard engine.settings.autoAdvance else { return "Press Next when ready" }
@@ -223,15 +217,13 @@ struct RoundView: View {
     }
 }
 
-/// Countdown ring with the album art inside it as a circle and the time
-/// left in the middle.
+/// Countdown ring with the album art inside it as a circle.
 private struct DiscView: View {
     let progress: Double
     let artwork: Artwork?
     let showArt: Bool
     let sharpness: Double
     let dimmed: Bool
-    let centerText: String?
     let revealed: Bool
 
     private let size: CGFloat = 440
@@ -252,18 +244,6 @@ private struct DiscView: View {
                 .clipShape(Circle())
                 .opacity(showArt ? 1 : 0)
                 .animation(.easeIn(duration: 1.5), value: showArt)
-            if let centerText {
-                Text(centerText)
-                    .font(.system(size: 96, weight: .bold).monospacedDigit())
-                    .foregroundStyle(.white.opacity(dimmed ? 0.5 : 1))
-                    .shadow(color: .black.opacity(0.8), radius: 14)
-                    .background(
-                        Circle()
-                            .fill(.black.opacity(showArt ? 0.4 : 0))
-                            .frame(width: 230, height: 230)
-                    )
-                    .transition(.opacity)
-            }
         }
         .frame(width: size, height: size)
     }
