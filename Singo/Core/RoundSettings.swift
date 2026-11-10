@@ -74,18 +74,6 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     public var enabledHints: Set<Hint> = [.genre, .year, .art, .artist]
     public var background: BackgroundStyle = .black
 
-    /// When each hint appears, as a fraction of the clip length, so the
-    /// schedule stretches or shrinks with the clip. With a 30 s clip: title
-    /// at 10 s (first, so a fill-in title has time to fill), genre and year at
-    /// 15 s, art at 20 s, artist at 25 s. Not saved, so changes to these
-    /// defaults always take effect.
-    public var hintFractions: [Hint: Double] = [
-        .title: 1.0 / 3.0,
-        .genre: 1.0 / 2.0,
-        .year: 1.0 / 2.0,
-        .art: 2.0 / 3.0,
-        .artist: 5.0 / 6.0,
-    ]
 
     public init() {}
 
@@ -115,12 +103,28 @@ public struct RoundSettings: Codable, Equatable, Sendable {
         background = (try? c.decodeIfPresent(BackgroundStyle.self, forKey: .background)) ?? background
     }
 
-    /// Seconds into the clip when `hint` appears. A fill-in title starts with
-    /// the song so it has the whole clip to fill in.
+    /// The hints that are on, in the order they appear. Genre and year share
+    /// a slot. A fill-in title isn't here because it starts with the song.
+    public var hintSlots: [[Hint]] {
+        var slots: [[Hint]] = []
+        if isEnabled(.title), !titleHintStyle.fillsIn { slots.append([.title]) }
+        let details = [Hint.genre, .year].filter { isEnabled($0) }
+        if !details.isEmpty { slots.append(details) }
+        if isEnabled(.art) { slots.append([.art]) }
+        if isEnabled(.artist) { slots.append([.artist]) }
+        return slots
+    }
+
+    /// Seconds into the clip when `hint` appears. The hints that are on are
+    /// spread evenly over the clip (e.g. three hints in a 30 s clip appear at
+    /// 7.5, 15 and 22.5 s), so turning one off doesn't leave a long gap. A
+    /// fill-in title starts with the song so it has the whole clip to fill.
+    /// Hints that are off return the clip length.
     public func time(of hint: Hint) -> TimeInterval {
-        if hint == .title, titleHintStyle.fillsIn { return 0 }
-        let fraction = min(max(hintFractions[hint] ?? 1, 0), 1)
-        return fraction * clipLength
+        if hint == .title, titleHintStyle.fillsIn { return isEnabled(.title) ? 0 : clipLength }
+        let slots = hintSlots
+        guard let index = slots.firstIndex(where: { $0.contains(hint) }) else { return clipLength }
+        return clipLength * Double(index + 1) / Double(slots.count + 1)
     }
 
     /// How far the fill-in title hint has filled, from 0 when the title hint

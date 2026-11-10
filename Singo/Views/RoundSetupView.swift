@@ -11,6 +11,7 @@ struct RoundSetupView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var round: GameController?
+    @State private var shareURL: URL?
     @FocusState private var startFocused: Bool
 
     private let clipLengths: [TimeInterval] = [15, 20, 30, 45, 60, 90]
@@ -92,13 +93,22 @@ struct RoundSetupView: View {
                     .frame(height: 84)
             } else if errorMessage == nil {
                 Button {
-                    round = GameController(songs: songs, settings: settings, playlist: playlist)
+                    round = GameController(songs: songs, settings: settings, playlist: playlist, shareURL: shareURL)
                 } label: {
                     Label("Start Round", systemImage: "play.fill")
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 .focused($startFocused)
                 .disabled(songs.isEmpty)
+            }
+
+            if !isLoading {
+                Label(shareURL == nil
+                      ? "No QR code: this playlist has no Apple Music link. Share it in Apple Music to get one."
+                      : "A QR code for this playlist shows during the game.",
+                      systemImage: "qrcode")
+                    .font(.system(size: 22))
+                    .foregroundStyle(.white.opacity(0.55))
             }
 
             Label("Turn on Do Not Disturb first (hold the TV button) so the Now Playing pop-up doesn't show the song.",
@@ -228,6 +238,7 @@ struct RoundSetupView: View {
         do {
             songs = try await library.songs(in: playlist)
             if songs.isEmpty { errorMessage = "This playlist has no songs." }
+            shareURL = await library.shareURL(for: playlist)
         } catch {
             errorMessage = "Couldn't load this playlist: \(error.localizedDescription)"
         }

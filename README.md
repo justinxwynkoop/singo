@@ -35,20 +35,26 @@ real Apple TV.
    year, title, album art and artist, each of which can be turned off. A
    timeline under the hints shows when each one appears. Choices are
    remembered.
-2. Each song, with a 30-second clip:
+2. Songs play in a random order, and each one goes on the called list as
+   soon as it starts, so a Singo can be checked straight away.
 
-   | Time | What happens |
-   | ---- | ------------ |
-   | 0s   | Black screen, song starts 45s in, countdown ring begins |
-   | 10s  | Title hint, if turned on: a blank per letter, like `H _ _   J _ _ _` (fill-in styles start at 0s) |
-   | 15s  | Genre and release year (each can be turned off) |
-   | 20s  | Album art fades in heavily blurred, sharpening until 30s |
-   | 25s  | Artist |
-   | 30s  | Reveal: title, artist, sharp art; added to the called list |
-   | 35s  | Next song (or wait for the host, if auto-advance is off) |
+   The hints that are on are spread evenly over the clip. With the defaults
+   (title hint off) and a 30-second clip:
 
-   Hint times scale with the clip length, so a 60-second clip shows hints at
-   20, 30, 40 and 50 seconds.
+   | Time  | What happens |
+   | ----- | ------------ |
+   | 0s    | Black screen, song starts 45s in, ring starts filling; a fill-in title hint starts here |
+   | 7.5s  | Genre and release year |
+   | 15s   | Album art fades in heavily blurred, sharpening until 30s |
+   | 22.5s | Artist |
+   | 30s   | Reveal: title and sharp art (hints that are off stay off) |
+   | 35s   | Next song (or wait for the host, if auto-advance is off) |
+
+   Turn a hint off and the rest spread out to fill the gap; turn the title
+   hint on (non-fill-in) and it takes the first slot.
+
+   Hint times scale with the clip length, so a 60-second clip shows the
+   default hints at 15, 30 and 45 seconds.
 
 ### Remote
 
@@ -58,7 +64,7 @@ real Apple TV.
 | Replay | Restart the clip from the start offset (hints already shown stay up) |
 | +15 sec | Before the reveal: pushes the reveal back. After: keeps the answer up longer |
 | Called songs | Pauses and opens a full-screen list of every revealed song, in order or A–Z, to check a Singo |
-| Skip / Next | Next song. A song skipped before its reveal isn't added to the called list |
+| Skip / Next | Next song (the skipped song stays on the called list) |
 | Menu/Back | Pauses and asks whether to end the round |
 
 The control buttons sit dimmed along the bottom; swipe to move between them and
@@ -123,10 +129,11 @@ Or open `Package.swift` in Xcode and press ⌘U.
   progress line around its edge that fills clockwise; the countdown is below
   it, the title hint above, genre and year on the left, artist on the right.
 - The playlist's name and art sit in the top-right corner during the game.
-  If Apple Music has a share link for the playlist, a QR code appears under
-  it so people can scan it with their phones. Playlists only have a share
-  link once they're shared or published in Apple Music, so private
-  playlists show no QR code.
+  If the playlist has an Apple Music link, a QR code appears under it so
+  people can scan it with their phones. Library playlists only have a link
+  once they're shared or published in Apple Music; the setup screen says
+  whether this playlist has one. (The playlist's details print to Xcode's
+  console under "playlist" to help track down a missing link.)
 - Background (in Round Setup): black, a glow in the playlist artwork's
   color, or slowly drifting colored light.
 - Hints you turn off stay off, even at the reveal. The reveal always shows

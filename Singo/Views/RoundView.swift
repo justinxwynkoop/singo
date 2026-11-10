@@ -68,7 +68,7 @@ struct RoundView: View {
         let revealed = engine.phase == .revealed
         return VStack(spacing: 0) {
             titleArea
-                // Leave the top corners for the song count and the playlist.
+                // Leave the top corners for "Paused" and the playlist.
                 .padding(.horizontal, 370)
                 .frame(maxWidth: .infinity)
                 .frame(height: 200)
@@ -118,15 +118,11 @@ struct RoundView: View {
             controls
         }
         .overlay(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Song \(engine.songNumber) of \(engine.songs.count)")
-                    .foregroundStyle(.white.opacity(0.5))
-                if engine.isPaused {
-                    Label("Paused", systemImage: "pause.fill")
-                        .foregroundStyle(.white.opacity(0.8))
-                }
+            if engine.isPaused {
+                Label("Paused", systemImage: "pause.fill")
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.8))
             }
-            .font(.system(size: 28, weight: .medium))
         }
         .overlay(alignment: .topTrailing) {
             PlaylistBadge(name: controller.playlistName,

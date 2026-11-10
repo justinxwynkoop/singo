@@ -77,6 +77,12 @@ struct CalledSongsView: View {
         .onExitCommand { dismiss() }
     }
 
+    /// The song currently playing (its answer isn't on screen yet).
+    private func isPlayingNow(_ entry: CalledSong) -> Bool {
+        let engine = controller.engine
+        return engine.phase != .finished && entry.number == engine.called.last?.number
+    }
+
     private func row(_ entry: CalledSong) -> some View {
         let song = controller.info(for: entry.song)
         // A button so the remote can focus each row and scroll the list.
@@ -95,9 +101,18 @@ struct CalledSongsView: View {
                         .frame(width: 110, height: 110)
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(song.title)
-                        .font(.system(size: 46, weight: .semibold))
-                        .lineLimit(1)
+                    HStack(spacing: 16) {
+                        Text(song.title)
+                            .font(.system(size: 46, weight: .semibold))
+                            .lineLimit(1)
+                        if isPlayingNow(entry) {
+                            Label("Playing now", systemImage: "speaker.wave.2.fill")
+                                .font(.system(size: 22, weight: .bold))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
+                                .background(Capsule().fill(.green.opacity(0.35)))
+                        }
+                    }
                     Text(song.artistName)
                         .font(.system(size: 34))
                         .foregroundStyle(.white.opacity(0.6))

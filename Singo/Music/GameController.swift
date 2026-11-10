@@ -1,6 +1,9 @@
 import Foundation
 import MusicKit
+import os
 import UIKit
+
+private let gameLog = Logger(subsystem: "family.singonight.app", category: "round")
 
 /// Runs one round: owns the round engine, the clock and the music player,
 /// and turns remote presses into engine commands.
@@ -35,14 +38,19 @@ final class GameController: Identifiable {
     /// QR code for the playlist's Apple Music link, if it has one.
     let playlistQRCode: CGImage?
 
-    init(songs: [Song], settings: RoundSettings, playlist: Playlist) {
+    init(songs: [Song], settings: RoundSettings, playlist: Playlist, shareURL: URL?) {
         var byID: [String: Song] = [:]
         for song in songs { byID[song.id.rawValue] = song }
         songsByID = byID
-        engine = RoundEngine(songs: songs.map(SongInfo.init(song:)), settings: settings)
+        // RoundEngine shuffles too; shuffling here as well costs nothing and
+        // makes sure the round never follows the playlist order.
+        var generator = SystemRandomNumberGenerator()
+        let shuffled = songs.shuffled(using: &generator).map(SongInfo.init(song:))
+        engine = RoundEngine(songs: shuffled, settings: settings, using: &generator)
         playlistName = playlist.name
         playlistArtwork = playlist.artwork
-        playlistQRCode = playlist.url.flatMap { QRCode.image(for: $0.absoluteString) }
+        playlistQRCode = shareURL.flatMap { QRCode.image(for: $0.absoluteString) }
+        gameLog.info("Round order: \(self.engine.songs.prefix(8).map(\.title).joined(separator: " | "), privacy: .public)")
     }
 
     // MARK: - Reading

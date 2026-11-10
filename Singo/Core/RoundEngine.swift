@@ -17,7 +17,7 @@ public struct RoundEngine: Sendable {
     public enum Event: Equatable, Sendable {
         /// Start playing `song` from `startTime` seconds in.
         case play(SongInfo, startTime: TimeInterval)
-        /// The current song was revealed and added to the called list.
+        /// The current song's answer is now on screen.
         case revealed(CalledSong)
         /// No songs left. Stop the music.
         case finished
@@ -50,7 +50,12 @@ public struct RoundEngine: Sendable {
         let unique = songs.filter { seen.insert($0.id).inserted }
         self.songs = unique.shuffled(using: &generator)
         self.settings = settings
-        if self.songs.isEmpty { phase = .finished }
+        if let first = self.songs.first {
+            // A song counts as called as soon as it starts playing.
+            called.append(CalledSong(number: 1, song: first))
+        } else {
+            phase = .finished
+        }
     }
 
     public init(songs: [SongInfo], settings: RoundSettings = RoundSettings()) {
@@ -146,8 +151,8 @@ public struct RoundEngine: Sendable {
         isPaused = paused
     }
 
-    /// Move on to the next song. A song skipped before its reveal is not
-    /// added to the called list, since nobody heard the whole clip.
+    /// Move on to the next song. The skipped song stays on the called list,
+    /// since it already played.
     public mutating func skip() -> [Event] {
         guard phase != .finished else { return [] }
         return nextSong()
@@ -176,8 +181,7 @@ public struct RoundEngine: Sendable {
 
     private mutating func reveal() -> Event {
         phase = .revealed
-        let entry = CalledSong(number: called.count + 1, song: songs[index])
-        called.append(entry)
+        let entry = called.last ?? CalledSong(number: called.count + 1, song: songs[index])
         return .revealed(entry)
     }
 
@@ -194,6 +198,7 @@ public struct RoundEngine: Sendable {
             return [.finished]
         }
         phase = .playing
+        called.append(CalledSong(number: called.count + 1, song: song))
         return [.play(song, startTime: settings.startTime(forSongDuration: song.duration))]
     }
 }

@@ -55,26 +55,54 @@ final class RoundEngineTests: XCTestCase {
     }
 
     func testDefaultHintSchedule() {
-        var settings = RoundSettings()
-        settings.setEnabled(.title, true)
-        var round = engine(settings: settings)
-        _ = run(&round, for: 9.5)
-        XCTAssertFalse(round.isShowing(.title))
-        _ = run(&round, for: 0.5) // 10 s: title first
-        XCTAssertTrue(round.isShowing(.title))
+        // Defaults: title off, so genre+year, art and artist are spread
+        // evenly over 30 s: 7.5, 15 and 22.5 s.
+        var round = engine()
+        _ = run(&round, for: 7)
         XCTAssertFalse(round.isShowing(.genre))
-        _ = run(&round, for: 5) // 15 s
+        _ = run(&round, for: 0.5)
         XCTAssertTrue(round.isShowing(.genre))
         XCTAssertTrue(round.isShowing(.year))
         XCTAssertFalse(round.isShowing(.art))
-        _ = run(&round, for: 5) // 20 s
+        _ = run(&round, for: 7.5) // 15 s
         XCTAssertTrue(round.isShowing(.art))
         XCTAssertEqual(round.artSharpness, 0, accuracy: 0.001)
         XCTAssertFalse(round.isShowing(.artist))
-        _ = run(&round, for: 5) // 25 s
+        _ = run(&round, for: 7.5) // 22.5 s
         XCTAssertTrue(round.isShowing(.artist))
         XCTAssertEqual(round.artSharpness, 0.5, accuracy: 0.001)
         XCTAssertEqual(round.phase, .playing)
+    }
+
+    func testHintsSpreadOutWhenSomeAreOff() {
+        var settings = RoundSettings()
+        settings.setEnabled(.year, false)
+        settings.setEnabled(.art, false)
+        // Genre and artist only: 10 s and 20 s.
+        XCTAssertEqual(settings.time(of: .genre), 10, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .artist), 20, accuracy: 0.001)
+
+        settings.setEnabled(.title, true)
+        settings.titleHintStyle = .blanks
+        // Title, genre, artist: 7.5, 15, 22.5 s.
+        XCTAssertEqual(settings.time(of: .title), 7.5, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .artist), 22.5, accuracy: 0.001)
+
+        settings.titleHintStyle = .fillIn
+        // Fill-in title starts at 0 and doesn't take a slot.
+        XCTAssertEqual(settings.time(of: .title), 0)
+        XCTAssertEqual(settings.time(of: .artist), 20, accuracy: 0.001)
+    }
+
+    func testAllHintsOnAreSpreadEvenly() {
+        var settings = RoundSettings()
+        settings.setEnabled(.title, true)
+        settings.titleHintStyle = .blanks
+        XCTAssertEqual(settings.time(of: .title), 6, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .genre), 12, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .year), 12, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .art), 18, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .artist), 24, accuracy: 0.001)
     }
 
     func testRevealAtClipEndThenAutoAdvance() {
@@ -114,12 +142,16 @@ final class RoundEngineTests: XCTestCase {
         XCTAssertEqual(round.elapsed, 6)
     }
 
-    func testSkipBeforeRevealDoesNotCallSong() {
+    func testSongIsCalledAsSoonAsItStarts() {
         var round = engine()
-        _ = run(&round, for: 12)
+        XCTAssertEqual(round.called.map(\.song), [round.songs[0]])
+        _ = run(&round, for: 5)
         _ = round.skip()
-        XCTAssertTrue(round.called.isEmpty)
-        XCTAssertEqual(round.index, 1)
+        // The skipped song stays called; the new one is called right away.
+        XCTAssertEqual(round.called.map(\.song), [round.songs[0], round.songs[1]])
+        XCTAssertEqual(round.called.map(\.number), [1, 2])
+        _ = round.replay()
+        XCTAssertEqual(round.called.count, 2)
     }
 
     func testAddTimeDelaysRevealAndKeepsHintTimes() {
@@ -205,9 +237,9 @@ final class RoundEngineTests: XCTestCase {
     func testHintScheduleScalesWithClipLength() {
         var settings = RoundSettings()
         settings.clipLength = 60
-        XCTAssertEqual(settings.time(of: .title), 20, accuracy: 0.001)
-        XCTAssertEqual(settings.time(of: .genre), 30, accuracy: 0.001)
-        XCTAssertEqual(settings.time(of: .artist), 50, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .genre), 15, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .art), 30, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .artist), 45, accuracy: 0.001)
     }
 
     func testShortSongsStartEarlier() {
@@ -290,7 +322,7 @@ final class TitleHintTests: XCTestCase {
         round.addTime()   // more time must not take letters back
         XCTAssertEqual(settings.titleFill(at: round.hintClock), 0.5, accuracy: 0.001)
         settings.titleHintStyle = .blanks
-        XCTAssertEqual(settings.time(of: .title), 10)
+        XCTAssertEqual(settings.time(of: .title), 6)
     }
 
     func testDetailsRespectToggles() {
