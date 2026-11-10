@@ -203,3 +203,7 @@ Or open `Package.swift` in Xcode and press ⌘U.
 
 Singo check by game type, printable bingo cards, saving a game if the Apple TV
 sleeps, a sound cue at the reveal, and editing individual hint times.
+
+## Game Night (Raspberry Pi trivia)
+
+A separate project in this repo: Jeopardy-style trivia with phone buzzers, served from a Raspberry Pi. See [`gamenight/README.md`](gamenight/README.md).
