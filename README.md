@@ -151,6 +151,24 @@ Xcode on their own.
 playback and timing), the other takes `Views/` (reveal screen, hint
 animations, remote controls, called list). `Core/` is shared.
 
+## App icon
+
+The Home Screen icon and Top Shelf banner live in
+`Singo/Assets.xcassets/App Icon & Top Shelf Image.brandassets`. Apple TV
+icons are three layers (Back, Middle, Front) that shift slightly when the icon
+is highlighted. They're drawn by `Tools/make_icon.py` (needs Python with
+Pillow; run `python3 Tools/make_icon.py Singo/Assets.xcassets`).
+
+To use your own art instead, open `Assets.xcassets` in Xcode, select **App
+Icon & Top Shelf Image**, and drag images onto each layer:
+
+| Image | Size (1x / 2x) |
+| ----- | -------------- |
+| App Icon layers (Back must be opaque) | 400×240 / 800×480 |
+| App Icon - App Store layers | 1280×768 |
+| Top Shelf Image | 1920×720 / 3840×1440 |
+| Top Shelf Image Wide | 2320×720 / 4640×1440 |
+
 ## Tests
 
 The game rules in `Singo/Core` build without MusicKit, so they test on the Mac
@@ -195,7 +213,6 @@ Or open `Package.swift` in Xcode and press ⌘U.
   this reminder too.
 - If a song won't play, the reason shows on screen. Playback details also
   print in Xcode's console (filter for "playback") while running from Xcode.
-- There's no app icon yet; the Apple TV home screen shows a blank tile.
 - Builds signed with a paid developer account last a year; reinstall from Xcode
   after that.
 
