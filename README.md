@@ -84,7 +84,6 @@ Singo/
     SongInfo.swift        Song details the game needs
   Music/                  MusicKit and app state
     MusicLibrary.swift    Permission, playlists, playlist songs
-    QRCode.swift          QR code image for the playlist link
     ClipPlayer.swift      ApplicationMusicPlayer: play a song from an offset
     GameController.swift  Runs a round: clock, engine, player, catalog lookups
     SettingsStore.swift   Saves settings between launches
@@ -130,11 +129,6 @@ Or open `Package.swift` in Xcode and press ⌘U.
   progress line around its edge that fills clockwise; the countdown is below
   it, the title hint above, genre and year on the left, artist on the right.
 - The playlist's name and art sit in the top-right corner during the game.
-  If the playlist has an Apple Music link, a QR code appears under it so
-  people can scan it with their phones. Library playlists only have a link
-  once they're shared or published in Apple Music; the setup screen says
-  whether this playlist has one. (The playlist's details print to Xcode's
-  console under "playlist" to help track down a missing link.)
 - Background (in Round Setup): black, a glow in the playlist artwork's
   color, drifting colored light, floating bubbles, or bouncing balls. (They
   can't follow the beat: Apple Music doesn't let apps read the audio or a

@@ -41,10 +41,8 @@ final class GameController: Identifiable {
     /// Shown in the corner of the game screen.
     let playlistName: String
     let playlistArtwork: Artwork?
-    /// QR code for the playlist's Apple Music link, if it has one.
-    let playlistQRCode: CGImage?
 
-    init(songs: [Song], settings: RoundSettings, playlist: Playlist, shareURL: URL?) {
+    init(songs: [Song], settings: RoundSettings, playlist: Playlist) {
         var byID: [String: Song] = [:]
         for song in songs { byID[song.id.rawValue] = song }
         songsByID = byID
@@ -55,7 +53,6 @@ final class GameController: Identifiable {
         engine = RoundEngine(songs: shuffled, settings: settings, using: &generator)
         playlistName = playlist.name
         playlistArtwork = playlist.artwork
-        playlistQRCode = shareURL.flatMap { QRCode.image(for: $0.absoluteString) }
         gameLog.info("Round order: \(self.engine.songs.prefix(8).map(\.title).joined(separator: " | "), privacy: .public)")
     }
 

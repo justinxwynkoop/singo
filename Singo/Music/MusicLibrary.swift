@@ -1,8 +1,5 @@
 import Foundation
 import MusicKit
-import os
-
-private let log = Logger(subsystem: "family.singonight.app", category: "playlist")
 
 /// Apple Music permission and the playlists in the library signed into this Apple TV.
 @MainActor
@@ -35,31 +32,6 @@ final class MusicLibrary {
         } catch {
             errorMessage = "Couldn't load playlists: \(error.localizedDescription)"
         }
-    }
-
-    /// A link to open the playlist in Apple Music, for the QR code on the
-    /// game screen. Library playlists usually don't carry a link, so this
-    /// builds one from the playlist's Apple Music ID, which only exists once
-    /// the playlist has been shared or published.
-    func shareURL(for playlist: Playlist) async -> URL? {
-        if let url = playlist.url { return url }
-
-        guard let parameters = playlist.playParameters,
-              let data = try? JSONEncoder().encode(parameters),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            log.info("No play parameters for \(playlist.name, privacy: .public)")
-            return nil
-        }
-        log.info("Play parameters for \(playlist.name, privacy: .public): \(String(describing: json), privacy: .public)")
-
-        let globalID = ["globalId", "globalID", "catalogId", "catalogID"]
-            .lazy
-            .compactMap { json[$0] as? String }
-            .first { $0.hasPrefix("pl.") }
-        guard let globalID else { return nil }
-
-        let country = (try? await MusicDataRequest.currentCountryCode) ?? "us"
-        return URL(string: "https://music.apple.com/\(country)/playlist/\(globalID)")
     }
 
     /// Every song in the playlist. Music videos are left out so the screen stays dark.

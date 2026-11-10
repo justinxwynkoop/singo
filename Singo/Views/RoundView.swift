@@ -128,8 +128,7 @@ struct RoundView: View {
         }
         .overlay(alignment: .topTrailing) {
             PlaylistBadge(name: controller.playlistName,
-                          artwork: controller.playlistArtwork,
-                          qrCode: controller.playlistQRCode)
+                          artwork: controller.playlistArtwork)
         }
         .animation(.easeInOut(duration: 0.6), value: engine.phase)
     }
@@ -254,12 +253,10 @@ private struct RoundCountdown: View {
     }
 }
 
-/// The playlist name and art in the corner, with a QR code to open it in
-/// Apple Music when the playlist has a share link.
+/// The playlist name and art in the corner.
 private struct PlaylistBadge: View {
     let name: String
     let artwork: Artwork?
-    let qrCode: CGImage?
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 16) {
@@ -278,19 +275,6 @@ private struct PlaylistBadge: View {
                 if let artwork {
                     ArtworkImage(artwork, width: 72, height: 72)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-            }
-            if let qrCode {
-                VStack(alignment: .trailing, spacing: 8) {
-                    Image(decorative: qrCode, scale: 1)
-                        .interpolation(.none)
-                        .resizable()
-                        .frame(width: 130, height: 130)
-                        .padding(10)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(.white))
-                    Text("Scan to open the playlist")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.white.opacity(0.5))
                 }
             }
         }
