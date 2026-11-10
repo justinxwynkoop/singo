@@ -50,12 +50,7 @@ public struct RoundEngine: Sendable {
         let unique = songs.filter { seen.insert($0.id).inserted }
         self.songs = unique.shuffled(using: &generator)
         self.settings = settings
-        if let first = self.songs.first {
-            // A song counts as called as soon as it starts playing.
-            called.append(CalledSong(number: 1, song: first))
-        } else {
-            phase = .finished
-        }
+        if self.songs.isEmpty { phase = .finished }
     }
 
     public init(songs: [SongInfo], settings: RoundSettings = RoundSettings()) {
@@ -151,8 +146,15 @@ public struct RoundEngine: Sendable {
         isPaused = paused
     }
 
-    /// Move on to the next song. The skipped song stays on the called list,
-    /// since it already played.
+    /// The current song's music has started: put it on the called list so a
+    /// Singo can be checked straight away. Safe to call more than once.
+    public mutating func markCurrentCalled() {
+        guard let song = currentSong, called.last?.song.id != song.id else { return }
+        called.append(CalledSong(number: called.count + 1, song: song))
+    }
+
+    /// Move on to the next song. If the skipped song already played, it stays
+    /// on the called list.
     public mutating func skip() -> [Event] {
         guard phase != .finished else { return [] }
         return nextSong()
@@ -181,8 +183,8 @@ public struct RoundEngine: Sendable {
 
     private mutating func reveal() -> Event {
         phase = .revealed
-        let entry = called.last ?? CalledSong(number: called.count + 1, song: songs[index])
-        return .revealed(entry)
+        markCurrentCalled()
+        return .revealed(called[called.count - 1])
     }
 
     private mutating func nextSong() -> [Event] {
@@ -198,7 +200,6 @@ public struct RoundEngine: Sendable {
             return [.finished]
         }
         phase = .playing
-        called.append(CalledSong(number: called.count + 1, song: song))
         return [.play(song, startTime: settings.startTime(forSongDuration: song.duration))]
     }
 }

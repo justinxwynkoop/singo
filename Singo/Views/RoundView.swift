@@ -24,7 +24,9 @@ struct RoundView: View {
         ZStack {
             GameBackground(style: engine.settings.background,
                            playlistArtwork: controller.playlistArtwork)
-            if engine.phase == .finished {
+            if let count = controller.countdown {
+                RoundCountdown(count: count, playlistName: controller.playlistName)
+            } else if engine.phase == .finished {
                 finished
             } else {
                 stage
@@ -223,6 +225,41 @@ struct RoundView: View {
     }
 }
 
+/// "Round starts in" with a big 5, 4, 3, 2, 1 before the first song.
+private struct RoundCountdown: View {
+    let count: Int
+    let playlistName: String
+
+    var body: some View {
+        VStack(spacing: 30) {
+            Text("ROUND STARTS IN")
+                .font(.system(size: 40, weight: .bold))
+                .tracking(8)
+                .foregroundStyle(.white.opacity(0.7))
+            ZStack {
+                Circle()
+                    .stroke(.white.opacity(0.15), lineWidth: 14)
+                Circle()
+                    .trim(from: 0, to: CGFloat(count) / 5)
+                    .stroke(.white, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.8), value: count)
+                Text("\(count)")
+                    .font(.system(size: 220, weight: .heavy).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .id(count)
+                    .transition(.asymmetric(insertion: .scale(scale: 1.6).combined(with: .opacity),
+                                            removal: .scale(scale: 0.6).combined(with: .opacity)))
+            }
+            .frame(width: 380, height: 380)
+            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: count)
+            Text(playlistName)
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.6))
+        }
+    }
+}
+
 /// The playlist name and art in the corner, with a QR code to open it in
 /// Apple Music when the playlist has a share link.
 private struct PlaylistBadge: View {
@@ -392,26 +429,55 @@ private struct HintText: View {
 
 /// The title as a slot per letter, e.g. "H _ _   J _ _ _". With
 /// `showBlanks` off, hidden letters are empty space and letters just appear.
+/// Long titles shrink so they always fit on two lines above the art.
 private struct TitleBlanks: View {
     let words: [[HintGlyph]]
     let showBlanks: Bool
 
+    // Full-size measurements; everything scales down together.
+    static let cellWidth: CGFloat = 52
+    static let symbolWidth: CGFloat = 30
+    static let letterGap: CGFloat = 10
+    static let wordGap: CGFloat = 44
+    static let lineGap: CGFloat = 18
+    static let lineHeight: CGFloat = 63
+
     var body: some View {
-        FlowLayout(spacing: 44, lineSpacing: 22, centered: true) {
-            ForEach(words.indices, id: \.self) { w in
-                HStack(spacing: 10) {
-                    ForEach(words[w].indices, id: \.self) { g in
-                        GlyphCell(glyph: words[w][g], showBlank: showBlanks)
+        GeometryReader { geo in
+            let scale = Self.scale(for: words, width: geo.size.width)
+            FlowLayout(spacing: Self.wordGap * scale, lineSpacing: Self.lineGap * scale, centered: true) {
+                ForEach(words.indices, id: \.self) { w in
+                    HStack(spacing: Self.letterGap * scale) {
+                        ForEach(words[w].indices, id: \.self) { g in
+                            GlyphCell(glyph: words[w][g], showBlank: showBlanks, scale: scale)
+                        }
                     }
                 }
             }
+            .frame(width: geo.size.width)
         }
+        .frame(height: Self.lineHeight * 2 + Self.lineGap)
+    }
+
+    /// 1 for short titles; smaller for long ones so they fit in two lines
+    /// (with some slack because lines only break between words).
+    static func scale(for words: [[HintGlyph]], width: CGFloat) -> CGFloat {
+        let total = words.reduce(CGFloat(0)) { sum, word in
+            let glyphs = word.reduce(CGFloat(0)) { width, glyph in
+                if case .symbol = glyph { return width + symbolWidth }
+                return width + cellWidth
+            }
+            return sum + glyphs + letterGap * CGFloat(max(word.count - 1, 0))
+        } + wordGap * CGFloat(max(words.count - 1, 0))
+        guard total > 0, width > 0 else { return 1 }
+        return min(1, max(0.5, (2 * width * 0.85) / total))
     }
 }
 
 private struct GlyphCell: View {
     let glyph: HintGlyph
     let showBlank: Bool
+    var scale: CGFloat = 1
 
     var body: some View {
         Group {
@@ -422,24 +488,24 @@ private struct GlyphCell: View {
                 slot(Text(String(character)))
             case .symbol(let character):
                 Text(String(character))
-                    .font(.system(size: 46, weight: .bold))
+                    .font(.system(size: 46 * scale, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(height: 63)
+                    .frame(height: 63 * scale)
             }
         }
         .animation(.easeIn(duration: 0.5), value: glyph)
     }
 
     private func slot(_ text: Text) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 4 * scale) {
             text
-                .font(.system(size: 46, weight: .bold))
+                .font(.system(size: 46 * scale, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(width: 52, height: 54)
+                .frame(width: 52 * scale, height: 54 * scale)
                 .minimumScaleFactor(0.7)
             Capsule()
                 .fill(.white.opacity(showBlank ? 0.7 : 0))
-                .frame(width: 40, height: 5)
+                .frame(width: 40 * scale, height: 5)
         }
     }
 }

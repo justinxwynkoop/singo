@@ -142,16 +142,37 @@ final class RoundEngineTests: XCTestCase {
         XCTAssertEqual(round.elapsed, 6)
     }
 
-    func testSongIsCalledAsSoonAsItStarts() {
+    func testSongIsCalledOnceItsMusicStarts() {
         var round = engine()
+        XCTAssertTrue(round.called.isEmpty)
+        round.markCurrentCalled()
+        round.markCurrentCalled()  // only once
         XCTAssertEqual(round.called.map(\.song), [round.songs[0]])
         _ = run(&round, for: 5)
         _ = round.skip()
-        // The skipped song stays called; the new one is called right away.
+        // The skipped song stays called; the next isn't until its music starts.
+        XCTAssertEqual(round.called.count, 1)
+        round.markCurrentCalled()
         XCTAssertEqual(round.called.map(\.song), [round.songs[0], round.songs[1]])
         XCTAssertEqual(round.called.map(\.number), [1, 2])
         _ = round.replay()
+        round.markCurrentCalled()
         XCTAssertEqual(round.called.count, 2)
+    }
+
+    func testSongThatNeverPlayedIsNotCalled() {
+        var round = engine()
+        _ = round.skip()          // first song never started
+        round.markCurrentCalled()
+        XCTAssertEqual(round.called.map(\.song), [round.songs[1]])
+        XCTAssertEqual(round.called.first?.number, 1)
+    }
+
+    func testRevealCallsSongIfNotAlready() {
+        var round = engine()
+        round.markCurrentCalled()
+        _ = run(&round, for: 30)
+        XCTAssertEqual(round.called.count, 1)
     }
 
     func testAddTimeDelaysRevealAndKeepsHintTimes() {

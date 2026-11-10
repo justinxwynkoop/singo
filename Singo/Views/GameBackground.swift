@@ -18,6 +18,12 @@ struct GameBackground: View {
                 PlaylistGlow(color: playlistColor)
             case .animated:
                 DriftingLights(colors: animatedColors)
+            case .bubbles:
+                PlaylistGlow(color: playlistColor).opacity(0.5)
+                GlowingBalls(colors: animatedColors, motion: .float)
+            case .bouncingBalls:
+                PlaylistGlow(color: playlistColor).opacity(0.5)
+                GlowingBalls(colors: animatedColors, motion: .bounce)
             }
         }
         .ignoresSafeArea()
@@ -82,5 +88,77 @@ private struct DriftingLights: View {
             }
         }
         .overlay(Color.black.opacity(0.25))
+    }
+}
+
+/// Soft glowing balls in the palette colors, drawn every frame. Positions
+/// come from the time, so there's no state to keep.
+private struct GlowingBalls: View {
+    enum Motion { case float, bounce }
+
+    let colors: [Color]
+    let motion: Motion
+
+    private var count: Int { motion == .float ? 40 : 26 }
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            Canvas { canvas, size in
+                for i in 0..<count {
+                    let radius = 18 + random(i, 1) * (motion == .float ? 46 : 60)
+                    let color = colors[i % colors.count]
+                    let center = position(of: i, radius: radius, at: t, in: size)
+                    let glow = radius * 2.2
+                    let rect = CGRect(x: center.x - glow, y: center.y - glow, width: glow * 2, height: glow * 2)
+                    let opacity = 0.35 + random(i, 2) * 0.35
+                    canvas.fill(
+                        Path(ellipseIn: rect),
+                        with: .radialGradient(
+                            Gradient(stops: [
+                                .init(color: color.opacity(opacity), location: 0),
+                                .init(color: color.opacity(opacity * 0.8), location: radius / glow * 0.85),
+                                .init(color: color.opacity(0), location: 1),
+                            ]),
+                            center: center, startRadius: 0, endRadius: glow))
+                }
+            }
+        }
+        .overlay(Color.black.opacity(0.2))
+    }
+
+    private func position(of i: Int, radius: Double, at t: Double, in size: CGSize) -> CGPoint {
+        let w = Double(size.width)
+        let h = Double(size.height)
+        switch motion {
+        case .float:
+            // Rise from below the bottom edge to above the top, swaying.
+            let speed = 25 + random(i, 3) * 45
+            let travel = h + radius * 4
+            let y = h + radius * 2 - (t * speed + random(i, 4) * travel).truncatingRemainder(dividingBy: travel)
+            let x = random(i, 5) * w + sin(t * (0.3 + random(i, 6) * 0.5) + Double(i)) * 40
+            return CGPoint(x: x, y: y)
+        case .bounce:
+            let speedX = (60 + random(i, 3) * 90) * (random(i, 7) > 0.5 ? 1 : -1)
+            let speedY = (50 + random(i, 4) * 80) * (random(i, 8) > 0.5 ? 1 : -1)
+            let x = bounce(random(i, 5) * w + t * speedX, length: w - radius * 2) + radius
+            let y = bounce(random(i, 6) * h + t * speedY, length: h - radius * 2) + radius
+            return CGPoint(x: x, y: y)
+        }
+    }
+
+    /// Folds an ever-growing distance back and forth between 0 and `length`.
+    private func bounce(_ distance: Double, length: Double) -> Double {
+        guard length > 0 else { return 0 }
+        let period = length * 2
+        var d = distance.truncatingRemainder(dividingBy: period)
+        if d < 0 { d += period }
+        return d <= length ? d : period - d
+    }
+
+    /// A repeatable "random" number from 0 to 1 for ball `i`, property `k`.
+    private func random(_ i: Int, _ k: Int) -> Double {
+        let x = sin(Double(i) * 12.9898 + Double(k) * 78.233) * 43758.5453
+        return x - x.rounded(.down)
     }
 }

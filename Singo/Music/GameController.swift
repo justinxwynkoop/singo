@@ -16,6 +16,8 @@ final class GameController: Identifiable {
     /// A short message for the host, e.g. a song that couldn't play.
     private(set) var notice: String?
     var showingCalledList = false
+    /// 5, 4, 3, 2, 1 before the first song; nil once the round is going.
+    private(set) var countdown: Int?
 
     private let songsByID: [String: Song]
     /// Genre, year or artwork filled in from the Apple Music catalog when the
@@ -26,6 +28,8 @@ final class GameController: Identifiable {
 
     private let player = ClipPlayer()
     private var clockTask: Task<Void, Never>?
+    private var countdownTask: Task<Void, Never>?
+    private var hasBegun = false
     private var playGeneration = 0
     private var failuresInARow = 0
     private var needsRestart = false
@@ -65,12 +69,22 @@ final class GameController: Identifiable {
 
     // MARK: - Lifecycle
 
+    /// Count down from 5, then start the first song.
     func begin() {
-        guard clockTask == nil else { return }
+        guard !hasBegun else { return }
+        hasBegun = true
         UIApplication.shared.isIdleTimerDisabled = true
-        handle(engine.start())
-        startClock()
         Task { await checkSubscription() }
+        countdownTask = Task {
+            for n in stride(from: 5, through: 1, by: -1) {
+                countdown = n
+                try? await Task.sleep(for: .seconds(1))
+                if Task.isCancelled { return }
+            }
+            countdown = nil
+            handle(engine.start())
+            startClock()
+        }
     }
 
     /// Catalog songs only play with an active Apple Music subscription.
@@ -82,6 +96,7 @@ final class GameController: Identifiable {
     }
 
     func end() {
+        countdownTask?.cancel()
         clockTask?.cancel()
         clockTask = nil
         playGeneration += 1
@@ -96,7 +111,7 @@ final class GameController: Identifiable {
     }
 
     func setPaused(_ paused: Bool) {
-        guard engine.phase != .finished, paused != engine.isPaused else { return }
+        guard countdown == nil, engine.phase != .finished, paused != engine.isPaused else { return }
         engine.setPaused(paused)
         if paused {
             player.pause()
@@ -192,6 +207,8 @@ final class GameController: Identifiable {
                 guard generation == playGeneration else { return }
                 isBuffering = false
                 failuresInARow = 0
+                // The music is playing, so the song now counts as called.
+                engine.markCurrentCalled()
                 if engine.isPaused { player.pause() }
             } catch {
                 guard generation == playGeneration else { return }

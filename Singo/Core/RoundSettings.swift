@@ -45,12 +45,18 @@ public enum BackgroundStyle: String, CaseIterable, Codable, Sendable {
     case playlistColor
     /// Slowly drifting colored light.
     case animated
+    /// Glowing colored bubbles floating up the screen.
+    case bubbles
+    /// Glowing colored balls bouncing off the edges of the screen.
+    case bouncingBalls
 
     public var label: String {
         switch self {
         case .black: return "Black"
         case .playlistColor: return "Playlist color"
-        case .animated: return "Animated"
+        case .animated: return "Drifting light"
+        case .bubbles: return "Floating bubbles"
+        case .bouncingBalls: return "Bouncing balls"
         }
     }
 }
