@@ -29,11 +29,20 @@ final class GameController: Identifiable {
     private var pauseHolds = 0
     private var wasPausedBeforeHold = false
 
-    init(songs: [Song], settings: RoundSettings) {
+    /// Shown in the corner of the game screen.
+    let playlistName: String
+    let playlistArtwork: Artwork?
+    /// QR code for the playlist's Apple Music link, if it has one.
+    let playlistQRCode: CGImage?
+
+    init(songs: [Song], settings: RoundSettings, playlist: Playlist) {
         var byID: [String: Song] = [:]
         for song in songs { byID[song.id.rawValue] = song }
         songsByID = byID
         engine = RoundEngine(songs: songs.map(SongInfo.init(song:)), settings: settings)
+        playlistName = playlist.name
+        playlistArtwork = playlist.artwork
+        playlistQRCode = playlist.url.flatMap { QRCode.image(for: $0.absoluteString) }
     }
 
     // MARK: - Reading

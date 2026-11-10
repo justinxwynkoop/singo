@@ -197,6 +197,7 @@ final class RoundEngineTests: XCTestCase {
         var settings = RoundSettings()
         settings.setEnabled(.art, false)
         settings.startOffset = 15
+        settings.background = .animated
         let data = try JSONEncoder().encode(settings)
         XCTAssertEqual(try JSONDecoder().decode(RoundSettings.self, from: data), settings)
     }

@@ -22,7 +22,8 @@ struct RoundView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            GameBackground(style: engine.settings.background,
+                           playlistArtwork: controller.playlistArtwork)
             if engine.phase == .finished {
                 finished
             } else {
@@ -67,20 +68,10 @@ struct RoundView: View {
         let revealed = engine.phase == .revealed
         return VStack(spacing: 0) {
             titleArea
+                // Leave the top corners for the song count and the playlist.
+                .padding(.horizontal, 370)
                 .frame(maxWidth: .infinity)
                 .frame(height: 200)
-                .overlay(alignment: .topLeading) {
-                    Text("Song \(engine.songNumber) of \(engine.songs.count)")
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.4))
-                }
-                .overlay(alignment: .topTrailing) {
-                    if engine.isPaused {
-                        Label("Paused", systemImage: "pause.fill")
-                            .font(.system(size: 28, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.6))
-                    }
-                }
 
             HStack(alignment: .center, spacing: 70) {
                 VStack(alignment: .trailing, spacing: 90) {
@@ -125,6 +116,22 @@ struct RoundView: View {
             }
 
             controls
+        }
+        .overlay(alignment: .topLeading) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Song \(engine.songNumber) of \(engine.songs.count)")
+                    .foregroundStyle(.white.opacity(0.5))
+                if engine.isPaused {
+                    Label("Paused", systemImage: "pause.fill")
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+            }
+            .font(.system(size: 28, weight: .medium))
+        }
+        .overlay(alignment: .topTrailing) {
+            PlaylistBadge(name: controller.playlistName,
+                          artwork: controller.playlistArtwork,
+                          qrCode: controller.playlistQRCode)
         }
         .animation(.easeInOut(duration: 0.6), value: engine.phase)
     }
@@ -217,6 +224,50 @@ struct RoundView: View {
             .buttonStyle(HostButtonStyle())
         }
         .foregroundStyle(.white)
+    }
+}
+
+/// The playlist name and art in the corner, with a QR code to open it in
+/// Apple Music when the playlist has a share link.
+private struct PlaylistBadge: View {
+    let name: String
+    let artwork: Artwork?
+    let qrCode: CGImage?
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 16) {
+            HStack(spacing: 18) {
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("PLAYLIST")
+                        .font(.system(size: 18, weight: .bold))
+                        .tracking(2)
+                        .foregroundStyle(.white.opacity(0.5))
+                    Text(name)
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.trailing)
+                }
+                if let artwork {
+                    ArtworkImage(artwork, width: 72, height: 72)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+            if let qrCode {
+                VStack(alignment: .trailing, spacing: 8) {
+                    Image(decorative: qrCode, scale: 1)
+                        .interpolation(.none)
+                        .resizable()
+                        .frame(width: 130, height: 130)
+                        .padding(10)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(.white))
+                    Text("Scan to open the playlist")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+            }
+        }
+        .frame(maxWidth: 340, alignment: .trailing)
     }
 }
 
@@ -350,9 +401,9 @@ private struct TitleBlanks: View {
     let showBlanks: Bool
 
     var body: some View {
-        FlowLayout(spacing: 40, lineSpacing: 22, centered: true) {
+        FlowLayout(spacing: 44, lineSpacing: 22, centered: true) {
             ForEach(words.indices, id: \.self) { w in
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     ForEach(words[w].indices, id: \.self) { g in
                         GlyphCell(glyph: words[w][g], showBlank: showBlanks)
                     }
@@ -388,10 +439,11 @@ private struct GlyphCell: View {
             text
                 .font(.system(size: 46, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(width: 34, height: 54)
+                .frame(width: 52, height: 54)
+                .minimumScaleFactor(0.7)
             Capsule()
                 .fill(.white.opacity(showBlank ? 0.7 : 0))
-                .frame(width: 34, height: 5)
+                .frame(width: 40, height: 5)
         }
     }
 }

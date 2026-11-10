@@ -77,6 +77,7 @@ Singo/
     SongInfo.swift        Song details the game needs
   Music/                  MusicKit and app state
     MusicLibrary.swift    Permission, playlists, playlist songs
+    QRCode.swift          QR code image for the playlist link
     ClipPlayer.swift      ApplicationMusicPlayer: play a song from an offset
     GameController.swift  Runs a round: clock, engine, player, catalog lookups
     SettingsStore.swift   Saves settings between launches
@@ -121,6 +122,13 @@ Or open `Package.swift` in Xcode and press ⌘U.
 - Game screen: the album art is a big rounded square in the middle with a
   progress line around its edge that fills clockwise; the countdown is below
   it, the title hint above, genre and year on the left, artist on the right.
+- The playlist's name and art sit in the top-right corner during the game.
+  If Apple Music has a share link for the playlist, a QR code appears under
+  it so people can scan it with their phones. Playlists only have a share
+  link once they're shared or published in Apple Music, so private
+  playlists show no QR code.
+- Background (in Round Setup): black, a glow in the playlist artwork's
+  color, or slowly drifting colored light.
 - Hints you turn off stay off, even at the reveal. The reveal always shows
   the song title.
 - **Turn on Do Not Disturb before a round** (hold the TV button on the remote

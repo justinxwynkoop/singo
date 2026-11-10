@@ -38,6 +38,23 @@ public enum TitleHintStyle: String, CaseIterable, Codable, Sendable {
     }
 }
 
+/// What's behind the game screen.
+public enum BackgroundStyle: String, CaseIterable, Codable, Sendable {
+    case black
+    /// A soft glow in the playlist artwork's main color.
+    case playlistColor
+    /// Slowly drifting colored light.
+    case animated
+
+    public var label: String {
+        switch self {
+        case .black: return "Black"
+        case .playlistColor: return "Playlist color"
+        case .animated: return "Animated"
+        }
+    }
+}
+
 /// Every timing in a round. Defaults: 30 s clip starting 45 s into the song,
 /// hints at 10/15/20/25 s, reveal at 30 s, next song at 35 s.
 public struct RoundSettings: Codable, Equatable, Sendable {
@@ -55,6 +72,7 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     /// Hints that appear during the clip. Turned-off hints stay hidden until
     /// the reveal. The title hint is off unless the host turns it on.
     public var enabledHints: Set<Hint> = [.genre, .year, .art, .artist]
+    public var background: BackgroundStyle = .black
 
     /// When each hint appears, as a fraction of the clip length, so the
     /// schedule stretches or shrinks with the clip. With a 30 s clip: title
@@ -81,7 +99,7 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     // with defaults for anything new.
     private enum CodingKeys: String, CodingKey {
         case clipLength, startOffset, revealHold, addTimeStep, titleHintStyle,
-             autoAdvance, enabledHints
+             autoAdvance, enabledHints, background
     }
 
     public init(from decoder: Decoder) throws {
@@ -94,6 +112,7 @@ public struct RoundSettings: Codable, Equatable, Sendable {
         titleHintStyle = (try? c.decodeIfPresent(TitleHintStyle.self, forKey: .titleHintStyle)) ?? titleHintStyle
         autoAdvance = (try? c.decodeIfPresent(Bool.self, forKey: .autoAdvance)) ?? autoAdvance
         enabledHints = (try? c.decodeIfPresent(Set<Hint>.self, forKey: .enabledHints)) ?? enabledHints
+        background = (try? c.decodeIfPresent(BackgroundStyle.self, forKey: .background)) ?? background
     }
 
     /// Seconds into the clip when `hint` appears. A fill-in title starts with

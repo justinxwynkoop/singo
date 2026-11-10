@@ -92,7 +92,7 @@ struct RoundSetupView: View {
                     .frame(height: 84)
             } else if errorMessage == nil {
                 Button {
-                    round = GameController(songs: songs, settings: settings)
+                    round = GameController(songs: songs, settings: settings, playlist: playlist)
                 } label: {
                     Label("Start Round", systemImage: "play.fill")
                 }
@@ -150,6 +150,10 @@ struct RoundSetupView: View {
                              detail: "What happens once the song is revealed",
                              options: [Choice(true, "Next song automatically"), Choice(false, "Wait for the host")],
                              selection: $store.settings.autoAdvance)
+            ChoiceSettingRow(icon: "paintpalette", title: "Background",
+                             detail: "What's behind the game screen",
+                             options: BackgroundStyle.allCases.map { Choice($0, $0.label) },
+                             selection: $store.settings.background)
         }
     }
 
