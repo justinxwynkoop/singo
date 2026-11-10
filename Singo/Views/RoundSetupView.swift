@@ -82,6 +82,10 @@ struct RoundSetupView: View {
                 }
                 .disabled(songs.isEmpty)
             }
+            Label("Before you start: turn on Do Not Disturb in Control Center (hold the TV button) so the Now Playing pop-up doesn't show the song name.",
+                  systemImage: "moon.fill")
+                .font(.system(size: 26))
+                .foregroundStyle(.secondary)
         }
     }
 

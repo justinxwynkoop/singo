@@ -112,9 +112,10 @@ Or open `Package.swift` in Xcode and press ⌘U.
 - The Apple TV won't go to its screensaver during a round.
 - Title hint styles (set before the round): off (default), blanks only,
   blanks + first letter, or blanks + first letter of each word.
-- tvOS pops up a "Now Playing" card when a song starts. The app replaces its
-  title and artist with "Singo Night · Song 3 of 28" so it doesn't give the
-  answer away.
+- **Turn on Do Not Disturb before a round** (hold the TV button on the remote
+  to open Control Center). Otherwise tvOS pops up a "Now Playing" card with
+  the song title and artist each time a song starts. The setup screen shows
+  this reminder too.
 - If a song won't play, the reason shows on screen. Playback details also
   print in Xcode's console (filter for "playback") while running from Xcode.
 - There's no app icon yet; the Apple TV home screen shows a blank tile.
