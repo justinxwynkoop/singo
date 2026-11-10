@@ -154,8 +154,7 @@ struct RoundView: View {
             }
             .transition(.opacity)
         } else {
-            HintLine(label: "Title", alignment: .center,
-                     visible: engine.isShowing(.title) && controller.secondsUntilNextSong == nil) {
+            HintLine(label: "Title", alignment: .center, visible: engine.isShowing(.title)) {
                 TitleBlanks(words: engine.titleHint,
                             showBlanks: engine.settings.titleHintStyle.showsBlanks)
             }
@@ -163,7 +162,6 @@ struct RoundView: View {
     }
 
     private var statusLine: String {
-        if let seconds = controller.secondsUntilNextSong { return "Next song starts in \(seconds)" }
         if controller.isBuffering { return "Loading…" }
         switch engine.phase {
         case .playing:

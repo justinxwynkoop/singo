@@ -18,8 +18,6 @@ final class GameController: Identifiable {
     var showingCalledList = false
     /// 5, 4, 3, 2, 1 before the first song; nil once the round is going.
     private(set) var countdown: Int?
-    /// Seconds left in the quiet pause before the next song; nil otherwise.
-    private(set) var secondsUntilNextSong: Int?
 
     private let songsByID: [String: Song]
     /// Genre, year or artwork filled in from the Apple Music catalog when the
@@ -32,9 +30,6 @@ final class GameController: Identifiable {
     private var clockTask: Task<Void, Never>?
     private var countdownTask: Task<Void, Never>?
     private var hasBegun = false
-    /// Which song last started, so moving to a new song (not a replay) gets
-    /// the pause between songs.
-    private var lastStartedIndex: Int?
     private var playGeneration = 0
     private var failuresInARow = 0
     private var needsRestart = false
@@ -101,7 +96,6 @@ final class GameController: Identifiable {
     }
 
     func end() {
-        secondsUntilNextSong = nil
         countdownTask?.cancel()
         clockTask?.cancel()
         clockTask = nil
@@ -190,7 +184,6 @@ final class GameController: Identifiable {
             case .revealed:
                 break
             case .finished:
-                secondsUntilNextSong = nil
                 playGeneration += 1
                 isBuffering = false
                 player.stop()
@@ -207,25 +200,7 @@ final class GameController: Identifiable {
         guard let song = songsByID[info.id] else { return }
         isBuffering = true
 
-        let isNewSong = lastStartedIndex != nil && lastStartedIndex != engine.index
-        lastStartedIndex = engine.index
-        let gap = isNewSong ? Int(engine.settings.gapBetweenSongs) : 0
-        if gap == 0 { secondsUntilNextSong = nil }
-
         Task {
-            // A few quiet seconds between songs.
-            if gap > 0 {
-                player.stop()
-                for n in stride(from: gap, through: 1, by: -1) {
-                    secondsUntilNextSong = n
-                    try? await Task.sleep(for: .seconds(1))
-                    while engine.isPaused, generation == playGeneration {
-                        try? await Task.sleep(for: .milliseconds(200))
-                    }
-                    guard generation == playGeneration else { return }
-                }
-                secondsUntilNextSong = nil
-            }
             do {
                 try await player.play(song, from: startTime,
                                       label: "Song \(engine.songNumber) of \(engine.songs.count)")
