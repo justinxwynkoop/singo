@@ -25,6 +25,8 @@ final class GameController: Identifiable {
     private var catalogDetails: [String: SongInfo] = [:]
     private var catalogArtwork: [String: Artwork] = [:]
     private var lookedUp: Set<String> = []
+    /// Catalog copies used for songs whose library copy wouldn't play.
+    private var catalogSongs: [String: Song] = [:]
 
     private let player = ClipPlayer()
     private var clockTask: Task<Void, Never>?
@@ -202,8 +204,7 @@ final class GameController: Identifiable {
 
         Task {
             do {
-                try await player.play(song, from: startTime,
-                                      label: "Song \(engine.songNumber) of \(engine.songs.count)")
+                try await play(song, info: info, from: startTime)
                 guard generation == playGeneration else { return }
                 isBuffering = false
                 failuresInARow = 0
@@ -219,9 +220,9 @@ final class GameController: Identifiable {
                     // burning through the whole playlist.
                     needsRestart = true
                     engine.setPaused(true)
-                    show("Apple Music isn't playing. Check the subscription and network, then press Play. (\(error.localizedDescription))", for: nil)
+                    show("Apple Music won't play these songs (\(Self.shortCode(error))). Check the network and subscription, then press Play.", for: nil)
                 } else {
-                    show("Couldn't play “\(info.title)” (\(error.localizedDescription)), skipped it.")
+                    show("Couldn't play “\(info.title)” (\(Self.shortCode(error))), skipped it.")
                     handle(engine.skip())
                 }
             }
@@ -234,6 +235,64 @@ final class GameController: Identifiable {
                 await lookUpCatalogDetails(for: engine.songs[next])
             }
         }
+    }
+
+    /// Plays the library copy of a song; if Apple Music refuses (common for
+    /// songs that are only in the library because a playlist was added),
+    /// plays the same song from the Apple Music catalog instead.
+    private func play(_ song: Song, info: SongInfo, from startTime: TimeInterval) async throws {
+        let label = "Song \(engine.songNumber) of \(engine.songs.count)"
+        if let catalog = catalogSongs[info.id] {
+            try await player.play(catalog, from: startTime, label: label)
+            return
+        }
+        do {
+            try await player.play(song, from: startTime, label: label)
+        } catch {
+            gameLog.error("Library copy of \(info.title, privacy: .public) failed (\(Self.shortCode(error), privacy: .public)); trying the catalog")
+            guard let catalog = await catalogSong(for: song, info: info) else {
+                gameLog.error("No catalog match for \(info.title, privacy: .public)")
+                throw error
+            }
+            try await player.play(catalog, from: startTime, label: label)
+            catalogSongs[info.id] = catalog
+            gameLog.info("Playing catalog copy of \(info.title, privacy: .public)")
+        }
+    }
+
+    /// The Apple Music catalog version of a library song: by its catalog ID
+    /// if the library copy has one, otherwise by searching title and artist.
+    private func catalogSong(for song: Song, info: SongInfo) async -> Song? {
+        if let id = Self.catalogID(of: song) {
+            let request = MusicCatalogResourceRequest<Song>(matching: \.id, equalTo: MusicItemID(id))
+            if let found = try? await request.response().items.first { return found }
+        }
+        var search = MusicCatalogSearchRequest(term: "\(info.title) \(info.artistName)", types: [Song.self])
+        search.limit = 10
+        guard let results = try? await search.response().songs else { return nil }
+        func same(_ a: String, _ b: String) -> Bool { a.caseInsensitiveCompare(b) == .orderedSame }
+        return results.first { same($0.title, info.title) && same($0.artistName, info.artistName) }
+            ?? results.first { same($0.title, info.title) }
+            ?? results.first { same($0.artistName, info.artistName) }
+    }
+
+    /// The catalog ID stored in a library song's play parameters, if any.
+    private static func catalogID(of song: Song) -> String? {
+        guard let parameters = song.playParameters,
+              let data = try? JSONEncoder().encode(parameters),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        for key in ["catalogId", "catalogID", "purchasedId", "id"] {
+            if let value = json[key] as? String, !value.isEmpty, value.allSatisfy(\.isNumber) {
+                return value
+            }
+        }
+        return nil
+    }
+
+    /// "error 6" style code instead of the long system message.
+    private static func shortCode(_ error: Error) -> String {
+        if let playerError = error as? ClipPlayerError { return playerError.localizedDescription }
+        return "error \((error as NSError).code)"
     }
 
     private func show(_ message: String, for seconds: Double? = 5) {
