@@ -47,8 +47,17 @@ final class RoundEngineTests: XCTestCase {
         XCTAssertEqual(round.start(), [.play(round.songs[0], startTime: 45)])
     }
 
-    func testDefaultHintScheduleMatchesBrief() {
+    func testTitleHintIsOffByDefault() {
+        XCTAssertFalse(RoundSettings().isEnabled(.title))
         var round = engine()
+        _ = run(&round, for: 29)
+        XCTAssertFalse(round.isShowing(.title))
+    }
+
+    func testDefaultHintScheduleMatchesBrief() {
+        var settings = RoundSettings()
+        settings.setEnabled(.title, true)
+        var round = engine(settings: settings)
         _ = run(&round, for: 9.5)
         XCTAssertFalse(round.isShowing(.genreAndYear))
         _ = run(&round, for: 0.5) // 10 s
@@ -141,7 +150,7 @@ final class RoundEngineTests: XCTestCase {
         let events = round.replay()
         XCTAssertEqual(events, [.play(round.songs[0], startTime: 45)])
         XCTAssertEqual(round.elapsed, 0)
-        XCTAssertTrue(round.isShowing(.title))
+        XCTAssertTrue(round.isShowing(.genreAndYear))
         XCTAssertEqual(round.remaining, 30)
     }
 
@@ -177,7 +186,7 @@ final class RoundEngineTests: XCTestCase {
         let settings = try JSONDecoder().decode(RoundSettings.self, from: Data(json.utf8))
         XCTAssertEqual(settings.clipLength, 45)
         XCTAssertEqual(settings.titleHintStyle, .firstLetter)
-        XCTAssertEqual(settings.enabledHints, Set(Hint.allCases))
+        XCTAssertEqual(settings.enabledHints, RoundSettings().enabledHints)
     }
 
     func testSettingsRoundTrip() throws {

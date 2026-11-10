@@ -38,7 +38,7 @@ real Apple TV.
    | ---- | ------------ |
    | 0s   | Black screen, song starts 45s in, countdown ring begins |
    | 10s  | Genre and release year |
-   | 15s  | Title hint: a blank per letter, like `H _ _   J _ _ _` |
+   | 15s  | Title hint, if turned on: a blank per letter, like `H _ _   J _ _ _` |
    | 20s  | Album art fades in heavily blurred, sharpening until 30s |
    | 25s  | Artist |
    | 30s  | Reveal: title, artist, sharp art; added to the called list |
@@ -110,8 +110,8 @@ Or open `Package.swift` in Xcode and press ⌘U.
 - If three songs in a row fail to play (no subscription, no network), the round
   pauses with a message instead of running through the playlist.
 - The Apple TV won't go to its screensaver during a round.
-- Title hint styles (set before the round): off, blanks only, blanks + first
-  letter (default), or blanks + first letter of each word.
+- Title hint styles (set before the round): off (default), blanks only,
+  blanks + first letter, or blanks + first letter of each word.
 - tvOS pops up a "Now Playing" card when a song starts. The app replaces its
   title and artist with "Singo Night · Song 3 of 28" so it doesn't give the
   answer away.

@@ -41,8 +41,8 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     /// When false, the round waits on the reveal screen until the host moves on.
     public var autoAdvance: Bool = true
     /// Hints that appear during the clip. Turned-off hints stay hidden until
-    /// the reveal.
-    public var enabledHints: Set<Hint> = Set(Hint.allCases)
+    /// the reveal. The title hint is off unless the host turns it on.
+    public var enabledHints: Set<Hint> = [.genreAndYear, .art, .artist]
 
     /// When each hint appears, as a fraction of the clip length, so the
     /// schedule stretches or shrinks with the clip. With a 30 s clip these are
