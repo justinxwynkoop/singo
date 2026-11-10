@@ -152,6 +152,10 @@ struct RoundSetupView: View {
                              detail: "Skip past long intros",
                              options: startOffsets.map { Choice($0, $0 == 0 ? "Beginning" : seconds($0)) },
                              selection: $store.settings.startOffset)
+            ChoiceSettingRow(icon: "pause.circle", title: "Pause between songs",
+                             detail: "Quiet seconds before the next song starts",
+                             options: [0.0, 3, 5, 10].map { Choice($0, $0 == 0 ? "None" : seconds($0)) },
+                             selection: $store.settings.gapBetweenSongs)
             ChoiceSettingRow(icon: "plus.circle", title: "Add-time button",
                              detail: "Extra time each press gives",
                              options: addTimeSteps.map { Choice($0, "+" + seconds($0)) },

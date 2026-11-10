@@ -70,6 +70,8 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     public var startOffset: TimeInterval = 45
     /// Seconds the reveal stays up before the next song starts.
     public var revealHold: TimeInterval = 5
+    /// Quiet seconds between one song ending and the next starting.
+    public var gapBetweenSongs: TimeInterval = 3
     /// How much the "add time" button adds.
     public var addTimeStep: TimeInterval = 15
     public var titleHintStyle: TitleHintStyle = .firstLetter
@@ -92,7 +94,7 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     // Decode field by field so settings saved by an older version still load,
     // with defaults for anything new.
     private enum CodingKeys: String, CodingKey {
-        case clipLength, startOffset, revealHold, addTimeStep, titleHintStyle,
+        case clipLength, startOffset, revealHold, gapBetweenSongs, addTimeStep, titleHintStyle,
              autoAdvance, enabledHints, background
     }
 
@@ -103,6 +105,7 @@ public struct RoundSettings: Codable, Equatable, Sendable {
         startOffset = (try? c.decodeIfPresent(TimeInterval.self, forKey: .startOffset)) ?? startOffset
         revealHold = (try? c.decodeIfPresent(TimeInterval.self, forKey: .revealHold)) ?? revealHold
         addTimeStep = (try? c.decodeIfPresent(TimeInterval.self, forKey: .addTimeStep)) ?? addTimeStep
+        gapBetweenSongs = (try? c.decodeIfPresent(TimeInterval.self, forKey: .gapBetweenSongs)) ?? gapBetweenSongs
         titleHintStyle = (try? c.decodeIfPresent(TitleHintStyle.self, forKey: .titleHintStyle)) ?? titleHintStyle
         autoAdvance = (try? c.decodeIfPresent(Bool.self, forKey: .autoAdvance)) ?? autoAdvance
         enabledHints = (try? c.decodeIfPresent(Set<Hint>.self, forKey: .enabledHints)) ?? enabledHints
