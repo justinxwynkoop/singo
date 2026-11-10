@@ -59,9 +59,9 @@ final class RoundEngineTests: XCTestCase {
         settings.setEnabled(.title, true)
         var round = engine(settings: settings)
         _ = run(&round, for: 9.5)
-        XCTAssertFalse(round.isShowing(.genreAndYear))
+        XCTAssertFalse(round.isShowing(.genre))
         _ = run(&round, for: 0.5) // 10 s
-        XCTAssertTrue(round.isShowing(.genreAndYear))
+        XCTAssertTrue(round.isShowing(.genre))
         XCTAssertFalse(round.isShowing(.title))
         _ = run(&round, for: 5) // 15 s
         XCTAssertTrue(round.isShowing(.title))
@@ -88,7 +88,7 @@ final class RoundEngineTests: XCTestCase {
         XCTAssertEqual(next, [.play(round.songs[1], startTime: 45)])
         XCTAssertEqual(round.phase, .playing)
         XCTAssertEqual(round.elapsed, 0)
-        XCTAssertFalse(round.isShowing(.genreAndYear))
+        XCTAssertFalse(round.isShowing(.genre))
     }
 
     func testManualAdvanceWaitsOnReveal() {
@@ -150,7 +150,7 @@ final class RoundEngineTests: XCTestCase {
         let events = round.replay()
         XCTAssertEqual(events, [.play(round.songs[0], startTime: 45)])
         XCTAssertEqual(round.elapsed, 0)
-        XCTAssertTrue(round.isShowing(.genreAndYear))
+        XCTAssertTrue(round.isShowing(.genre))
         XCTAssertEqual(round.remaining, 30)
     }
 
@@ -200,7 +200,7 @@ final class RoundEngineTests: XCTestCase {
     func testHintScheduleScalesWithClipLength() {
         var settings = RoundSettings()
         settings.clipLength = 60
-        XCTAssertEqual(settings.time(of: .genreAndYear), 20, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .genre), 20, accuracy: 0.001)
         XCTAssertEqual(settings.time(of: .artist), 50, accuracy: 0.001)
     }
 
@@ -239,6 +239,50 @@ final class TitleHintTests: XCTestCase {
 
     func testHintGlyphs() {
         XCTAssertEqual(TitleHint.glyphs(for: "Go!", style: .firstLetter), [[.shown("G"), .hidden, .symbol("!")]])
+    }
+
+    func testFillInStartsBlankAndFillsMostLetters() {
+        let title = "Hey Jude"   // 7 letters
+        XCTAssertEqual(TitleHint.text(for: title, style: .fillIn, fill: 0), "_ _ _   _ _ _ _")
+        // First letters of each word come first.
+        XCTAssertEqual(TitleHint.text(for: title, style: .fillIn, fill: 0.4), "H _ _   _ _ _ _")
+        let full = TitleHint.glyphs(for: title, style: .fillIn, fill: 1).flatMap { $0 }
+        let shown = full.filter { if case .shown = $0 { return true } else { return false } }.count
+        XCTAssertEqual(shown, 4)  // 70% of 7, rounded down: never the whole title
+        XCTAssertTrue(TitleHint.text(for: title, style: .fillIn, fill: 1).hasPrefix("H"))
+    }
+
+    func testFillInIsStableAndOnlyGrows() {
+        let title = "Bohemian Rhapsody"
+        var previous = 0
+        for step in 0...10 {
+            let fill = Double(step) / 10
+            let a = TitleHint.text(for: title, style: .fillIn, fill: fill)
+            XCTAssertEqual(a, TitleHint.text(for: title, style: .fillIn, fill: fill))
+            let count = a.filter { $0 != "_" && $0 != " " }.count
+            XCTAssertGreaterThanOrEqual(count, previous)
+            previous = count
+        }
+    }
+
+    func testEngineFillsTitleOverTheClip() {
+        var settings = RoundSettings()
+        settings.setEnabled(.title, true)
+        settings.titleHintStyle = .fillIn
+        var round = engine(settings: settings)
+        _ = run(&round, for: 15)
+        XCTAssertEqual(settings.titleFill(at: round.hintClock), 0)
+        _ = run(&round, for: 7.5)
+        XCTAssertEqual(settings.titleFill(at: round.hintClock), 0.5, accuracy: 0.001)
+        round.addTime()   // more time must not take letters back
+        XCTAssertEqual(settings.titleFill(at: round.hintClock), 0.5, accuracy: 0.001)
+    }
+
+    func testDetailsRespectToggles() {
+        let song = SongInfo(id: "1", title: "x", artistName: "y", genreNames: ["Pop"], releaseYear: 1984)
+        XCTAssertEqual(song.details(genre: true, year: false), "Pop")
+        XCTAssertEqual(song.details(genre: false, year: true), "1984")
+        XCTAssertNil(song.details(genre: false, year: false))
     }
 
     func testGenreAndYear() {

@@ -2,7 +2,8 @@ import Foundation
 
 /// The four hints, in the order they normally appear.
 public enum Hint: String, CaseIterable, Codable, Sendable {
-    case genreAndYear
+    case genre
+    case year
     case title
     case art
     case artist
@@ -15,12 +16,15 @@ public enum TitleHintStyle: String, CaseIterable, Codable, Sendable {
     case firstLetter
     /// "H _ _   J _ _ _": plus the first letter of every word.
     case firstLetterOfEachWord
+    /// Starts as blanks and fills in letters as the song plays.
+    case fillIn
 
     public var label: String {
         switch self {
-        case .blanks: return "Blanks only"
-        case .firstLetter: return "Blanks + first letter"
-        case .firstLetterOfEachWord: return "Blanks + first letter of each word"
+        case .blanks: return "Blanks"
+        case .firstLetter: return "First letter"
+        case .firstLetterOfEachWord: return "First letter of each word"
+        case .fillIn: return "Fills in as it plays"
         }
     }
 }
@@ -42,13 +46,14 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     public var autoAdvance: Bool = true
     /// Hints that appear during the clip. Turned-off hints stay hidden until
     /// the reveal. The title hint is off unless the host turns it on.
-    public var enabledHints: Set<Hint> = [.genreAndYear, .art, .artist]
+    public var enabledHints: Set<Hint> = [.genre, .year, .art, .artist]
 
     /// When each hint appears, as a fraction of the clip length, so the
     /// schedule stretches or shrinks with the clip. With a 30 s clip these are
     /// 10, 15, 20 and 25 seconds.
     public var hintFractions: [Hint: Double] = [
-        .genreAndYear: 1.0 / 3.0,
+        .genre: 1.0 / 3.0,
+        .year: 1.0 / 3.0,
         .title: 1.0 / 2.0,
         .art: 2.0 / 3.0,
         .artist: 5.0 / 6.0,
@@ -86,6 +91,14 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     public func time(of hint: Hint) -> TimeInterval {
         let fraction = min(max(hintFractions[hint] ?? 1, 0), 1)
         return fraction * clipLength
+    }
+
+    /// How far the fill-in title hint has filled, from 0 when the title hint
+    /// appears to 1 at the end of the clip.
+    public func titleFill(at seconds: TimeInterval) -> Double {
+        let start = time(of: .title)
+        guard clipLength > start else { return 1 }
+        return min(max((seconds - start) / (clipLength - start), 0), 1)
     }
 
     /// Where playback should start for a song of the given length. Moves the

@@ -125,11 +125,21 @@ struct RoundView: View {
         }
     }
 
+    /// "Genre · Year", "Genre" or "Year", depending on which hints are on.
+    private var detailsLabel: String {
+        let s = engine.settings
+        switch (s.isEnabled(.genre), s.isEnabled(.year)) {
+        case (true, false): return "Genre"
+        case (false, true): return "Year"
+        default: return "Genre · Year"
+        }
+    }
+
     private var hints: some View {
         let song = controller.currentSong
         return VStack(alignment: .leading, spacing: 56) {
-            HintLine(label: "Genre · Year", visible: engine.isShowing(.genreAndYear)) {
-                HintText(song?.genreAndYear ?? "Not listed")
+            HintLine(label: detailsLabel, visible: engine.isShowing(.genre) || engine.isShowing(.year)) {
+                HintText(song?.details(genre: engine.isShowing(.genre), year: engine.isShowing(.year)) ?? "Not listed")
             }
             HintLine(label: "Title", visible: engine.isShowing(.title)) {
                 TitleBlanks(words: engine.titleHint)

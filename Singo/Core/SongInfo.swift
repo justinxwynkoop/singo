@@ -36,8 +36,12 @@ public struct SongInfo: Identifiable, Hashable, Codable, Sendable {
     }
 
     /// "Rock · 1985", "Rock", "1985", or nil when neither is known.
-    public var genreAndYear: String? {
-        let parts = [genre, releaseYear.map(String.init)].compactMap { $0 }
+    public var genreAndYear: String? { details(genre: true, year: true) }
+
+    /// Genre and/or year joined with " · ", or nil if none of the asked-for
+    /// details are known.
+    public func details(genre showGenre: Bool, year showYear: Bool) -> String? {
+        let parts = [showGenre ? genre : nil, showYear ? releaseYear.map(String.init) : nil].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }

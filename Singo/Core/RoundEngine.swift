@@ -104,7 +104,10 @@ public struct RoundEngine: Sendable {
 
     /// Title hint for the current song as words of blanks, e.g. "H _ _   J _ _ _".
     public var titleHint: [[HintGlyph]] {
-        currentSong.map { TitleHint.glyphs(for: $0.title, style: settings.titleHintStyle) } ?? []
+        currentSong.map {
+            TitleHint.glyphs(for: $0.title, style: settings.titleHintStyle,
+                             fill: settings.titleFill(at: hintClock))
+        } ?? []
     }
 
     // MARK: - Driving the round

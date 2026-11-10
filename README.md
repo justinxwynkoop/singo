@@ -28,16 +28,19 @@ real Apple TV.
 
 ## Playing a round
 
-1. Pick a playlist. On the next screen, swipe across each row and click to
-   choose: clip length, where each song starts, the add-time button, whether
-   the next song starts automatically, and which hints show (each one can be
-   turned off). Then **Start round**. Choices are remembered.
+1. Pick a playlist. The setup screen shows the playlist on the left with
+   **Start Round**, and the settings on the right: click a row to change it.
+   **Round:** clip length, where each song starts, the add-time button, and
+   whether the next song starts automatically. **Hints:** genre, release
+   year, title, album art and artist, each of which can be turned off. A
+   timeline under the hints shows when each one appears. Choices are
+   remembered.
 2. Each song, with a 30-second clip:
 
    | Time | What happens |
    | ---- | ------------ |
    | 0s   | Black screen, song starts 45s in, countdown ring begins |
-   | 10s  | Genre and release year |
+   | 10s  | Genre and release year (each can be turned off) |
    | 15s  | Title hint, if turned on: a blank per letter, like `H _ _   J _ _ _` |
    | 20s  | Album art fades in heavily blurred, sharpening until 30s |
    | 25s  | Artist |
@@ -111,7 +114,9 @@ Or open `Package.swift` in Xcode and press ⌘U.
   pauses with a message instead of running through the playlist.
 - The Apple TV won't go to its screensaver during a round.
 - Title hint styles (set before the round): off (default), blanks only,
-  blanks + first letter, or blanks + first letter of each word.
+  blanks + first letter, blanks + first letter of each word, or "fills in as
+  it plays": starts as blanks and fills in letters (first letters first)
+  until about 70% are showing at the end of the clip.
 - **Turn on Do Not Disturb before a round** (hold the TV button on the remote
   to open Control Center). Otherwise tvOS pops up a "Now Playing" card with
   the song title and artist each time a song starts. The setup screen shows
