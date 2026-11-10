@@ -35,8 +35,9 @@ real Apple TV.
    year, title, album art and artist, each of which can be turned off. A
    timeline under the hints shows when each one appears. Choices are
    remembered.
-2. Songs play in a random order, and each one goes on the called list as
-   soon as it starts, so a Singo can be checked straight away.
+2. A "Round starts in 5…1" countdown plays first. Songs play in a random
+   order, and each one goes on the called list as soon as its music starts,
+   so a Singo can be checked straight away.
 
    The hints that are on are spread evenly over the clip. With the defaults
    (title hint off) and a 30-second clip:
@@ -135,7 +136,10 @@ Or open `Package.swift` in Xcode and press ⌘U.
   whether this playlist has one. (The playlist's details print to Xcode's
   console under "playlist" to help track down a missing link.)
 - Background (in Round Setup): black, a glow in the playlist artwork's
-  color, or slowly drifting colored light.
+  color, drifting colored light, floating bubbles, or bouncing balls. (They
+  can't follow the beat: Apple Music doesn't let apps read the audio or a
+  song's tempo.)
+- Long titles shrink so the title hint always fits in two lines.
 - Hints you turn off stay off, even at the reveal. The reveal always shows
   the song title.
 - **Turn on Do Not Disturb before a round** (hold the TV button on the remote
