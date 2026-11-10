@@ -18,6 +18,14 @@ public enum TitleHintStyle: String, CaseIterable, Codable, Sendable {
     case firstLetterOfEachWord
     /// Starts as blanks and fills in letters as the song plays.
     case fillIn
+    /// Like fillIn, but with no blank lines: letters just appear in place.
+    case fillInLettersOnly
+
+    /// Fill-in styles reveal more letters as the song plays.
+    public var fillsIn: Bool { self == .fillIn || self == .fillInLettersOnly }
+
+    /// Whether hidden letters are drawn as blank lines.
+    public var showsBlanks: Bool { self != .fillInLettersOnly }
 
     public var label: String {
         switch self {
@@ -25,13 +33,13 @@ public enum TitleHintStyle: String, CaseIterable, Codable, Sendable {
         case .firstLetter: return "First letter"
         case .firstLetterOfEachWord: return "First letter of each word"
         case .fillIn: return "Fills in as it plays"
+        case .fillInLettersOnly: return "Fills in, no blanks"
         }
     }
 }
 
-/// Every timing in a round. Defaults match the project brief:
-/// 30 s clip starting 45 s into the song, hints at 10/15/20/25 s,
-/// reveal at 30 s, next song at 35 s.
+/// Every timing in a round. Defaults: 30 s clip starting 45 s into the song,
+/// hints at 10/15/20/25 s, reveal at 30 s, next song at 35 s.
 public struct RoundSettings: Codable, Equatable, Sendable {
     /// Seconds of music before the reveal.
     public var clipLength: TimeInterval = 30
@@ -49,12 +57,14 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     public var enabledHints: Set<Hint> = [.genre, .year, .art, .artist]
 
     /// When each hint appears, as a fraction of the clip length, so the
-    /// schedule stretches or shrinks with the clip. With a 30 s clip these are
-    /// 10, 15, 20 and 25 seconds.
+    /// schedule stretches or shrinks with the clip. With a 30 s clip: title
+    /// at 10 s (first, so a fill-in title has time to fill), genre and year at
+    /// 15 s, art at 20 s, artist at 25 s. Not saved, so changes to these
+    /// defaults always take effect.
     public var hintFractions: [Hint: Double] = [
-        .genre: 1.0 / 3.0,
-        .year: 1.0 / 3.0,
-        .title: 1.0 / 2.0,
+        .title: 1.0 / 3.0,
+        .genre: 1.0 / 2.0,
+        .year: 1.0 / 2.0,
         .art: 2.0 / 3.0,
         .artist: 5.0 / 6.0,
     ]
@@ -71,7 +81,7 @@ public struct RoundSettings: Codable, Equatable, Sendable {
     // with defaults for anything new.
     private enum CodingKeys: String, CodingKey {
         case clipLength, startOffset, revealHold, addTimeStep, titleHintStyle,
-             autoAdvance, enabledHints, hintFractions
+             autoAdvance, enabledHints
     }
 
     public init(from decoder: Decoder) throws {
@@ -84,7 +94,6 @@ public struct RoundSettings: Codable, Equatable, Sendable {
         titleHintStyle = (try? c.decodeIfPresent(TitleHintStyle.self, forKey: .titleHintStyle)) ?? titleHintStyle
         autoAdvance = (try? c.decodeIfPresent(Bool.self, forKey: .autoAdvance)) ?? autoAdvance
         enabledHints = (try? c.decodeIfPresent(Set<Hint>.self, forKey: .enabledHints)) ?? enabledHints
-        hintFractions = (try? c.decodeIfPresent([Hint: Double].self, forKey: .hintFractions)) ?? hintFractions
     }
 
     /// Seconds into the clip when `hint` appears.

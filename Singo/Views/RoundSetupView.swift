@@ -23,14 +23,28 @@ struct RoundSetupView: View {
         HStack(alignment: .top, spacing: 90) {
             summary
                 .frame(width: 520)
+                // Pressing left from any setting lands on Start Round.
+                .focusSection()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 56) {
-                    roundGroup
-                    hintsGroup
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Round Setup")
+                        .font(.system(size: 56, weight: .bold))
+                    Text("Choose how each song plays and which hints appear.")
+                        .font(.system(size: 26))
+                        .foregroundStyle(.white.opacity(0.6))
                 }
-                .padding(.vertical, 30)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 48)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 56) {
+                        roundGroup
+                        hintsGroup
+                    }
+                    .padding(.vertical, 30)
+                    .padding(.horizontal, 20)
+                }
+                .focusSection()
             }
         }
         .padding(.horizontal, 70)
@@ -162,10 +176,12 @@ struct RoundSetupView: View {
 
     private var titleDetail: String {
         guard settings.isEnabled(.title) else { return "Hidden until the answer" }
-        let example = settings.titleHintStyle == .fillIn
-            ? TitleHint.text(for: "Hey Jude", style: .fillIn, fill: 1)
-            : TitleHint.text(for: "Hey Jude", style: settings.titleHintStyle)
-        let when = settings.titleHintStyle == .fillIn ? "Starts at \(at(.title)), fills to" : "From \(at(.title)):"
+        let style = settings.titleHintStyle
+        if style == .fillInLettersOnly {
+            return "From \(at(.title)), letters appear one by one with no blanks"
+        }
+        let example = TitleHint.text(for: "Hey Jude", style: style, fill: style.fillsIn ? 1 : 0)
+        let when = style.fillsIn ? "From \(at(.title)), fills to" : "From \(at(.title)):"
         return "\(when)  \(example)  (Hey Jude)"
     }
 

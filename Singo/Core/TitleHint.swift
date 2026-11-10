@@ -106,7 +106,7 @@ public enum TitleHint {
             return Set(firsts.prefix(1))
         case .firstLetterOfEachWord:
             return Set(firsts)
-        case .fillIn:
+        case .fillIn, .fillInLettersOnly:
             // First letters of each word go first, then the rest in a
             // shuffled order that's the same every time for this title.
             var generator = StableGenerator(seed: words.map { String($0) }.joined(separator: " "))

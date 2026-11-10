@@ -1,7 +1,8 @@
 import MusicKit
 import SwiftUI
 
-/// The game screen: black background, countdown ring, hints, reveal.
+/// The game screen: black background, album-art disc with the countdown in
+/// the middle, hints around it, then the reveal.
 ///
 /// Remote:
 /// - Play/Pause button: pause or resume
@@ -55,9 +56,14 @@ struct RoundView: View {
     }
 
     // MARK: - Playing and reveal
+    //
+    // Layout: title across the top, the album-art disc with the countdown in
+    // the middle, genre and year to its left, artist to its right.
 
     private var stage: some View {
-        VStack(spacing: 0) {
+        let song = controller.currentSong
+        let revealed = engine.phase == .revealed
+        return VStack(spacing: 0) {
             HStack {
                 Text("Song \(engine.songNumber) of \(engine.songs.count)")
                 Spacer()
@@ -68,112 +74,104 @@ struct RoundView: View {
             .font(.system(size: 28, weight: .medium))
             .foregroundStyle(.white.opacity(0.4))
 
-            Spacer()
+            titleArea
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
 
-            HStack(alignment: .center, spacing: 100) {
-                VStack(spacing: 36) {
-                    DiscView(
-                        progress: engine.progress,
-                        artwork: engine.currentSong.flatMap { controller.artwork(for: $0.id) },
-                        showArt: engine.isShowing(.art),
-                        sharpness: engine.artSharpness,
-                        dimmed: engine.isPaused
-                    )
-                    Text(statusLine)
-                        .font(.system(size: 34, weight: .medium).monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.55))
-                }
-
-                Group {
-                    if engine.phase == .revealed {
-                        revealText
-                    } else {
-                        hints
+            HStack(alignment: .center, spacing: 70) {
+                VStack(alignment: .trailing, spacing: 70) {
+                    HintLine(label: "Genre", alignment: .trailing, visible: engine.isShowing(.genre)) {
+                        HintText(song?.genre ?? "Not listed", alignment: .trailing)
+                    }
+                    HintLine(label: "Year", alignment: .trailing, visible: engine.isShowing(.year)) {
+                        HintText(song?.releaseYear.map(String.init) ?? "Not listed", alignment: .trailing)
                     }
                 }
-                .frame(width: 860, alignment: .leading)
-            }
-            .animation(.easeInOut(duration: 0.6), value: engine.phase)
+                .frame(width: 480, alignment: .trailing)
 
-            Spacer()
+                DiscView(
+                    progress: engine.progress,
+                    artwork: song.flatMap { controller.artwork(for: $0.id) },
+                    showArt: engine.isShowing(.art),
+                    sharpness: engine.artSharpness,
+                    dimmed: engine.isPaused,
+                    centerText: centerText,
+                    revealed: revealed
+                )
+
+                HintLine(label: "Artist", alignment: .leading, visible: engine.isShowing(.artist)) {
+                    HintText(song?.artistName ?? "", alignment: .leading)
+                }
+                .frame(width: 480, alignment: .leading)
+            }
+
+            Text(statusLine)
+                .font(.system(size: 30, weight: .medium).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.55))
+                .frame(height: 44)
+                .padding(.top, 18)
+
+            Spacer(minLength: 10)
 
             if let notice = controller.notice {
                 Text(notice)
                     .font(.system(size: 26))
                     .foregroundStyle(.yellow.opacity(0.8))
                     .multilineTextAlignment(.center)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 20)
             }
 
             controls
         }
         .padding(.horizontal, 40)
+        .animation(.easeInOut(duration: 0.6), value: engine.phase)
+    }
+
+    /// The title hint while playing; the real title (big) after the reveal.
+    @ViewBuilder
+    private var titleArea: some View {
+        if engine.phase == .revealed {
+            VStack(spacing: 10) {
+                if let number = engine.called.last?.number {
+                    Text("CALLED #\(number)")
+                        .font(.system(size: 24, weight: .semibold))
+                        .tracking(3)
+                        .foregroundStyle(.white.opacity(0.45))
+                }
+                Text(controller.currentSong?.title ?? "")
+                    .font(.system(size: 72, weight: .bold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.5)
+            }
+            .transition(.opacity)
+        } else {
+            HintLine(label: "Title", alignment: .center, visible: engine.isShowing(.title)) {
+                TitleBlanks(words: engine.titleHint,
+                            showBlanks: engine.settings.titleHintStyle.showsBlanks)
+            }
+        }
+    }
+
+    /// Countdown in the middle of the disc while the song plays.
+    private var centerText: String? {
+        guard engine.phase == .playing else { return nil }
+        if controller.isBuffering { return "…" }
+        let left = Int(engine.remaining.rounded(.up))
+        return String(format: "%d:%02d", left / 60, left % 60)
     }
 
     private var statusLine: String {
         if controller.isBuffering { return "Loading…" }
         switch engine.phase {
-        case .playing:
-            let left = Int(engine.remaining.rounded(.up))
-            return String(format: "%d:%02d", left / 60, left % 60)
+        case .playing, .finished:
+            return ""
         case .revealed:
             guard engine.settings.autoAdvance else { return "Press Next when ready" }
             let left = Int(max(0, engine.advanceTime - engine.elapsed).rounded(.up))
             return "Next song in \(left)"
-        case .finished:
-            return ""
         }
-    }
-
-    /// "Genre · Year", "Genre" or "Year", depending on which hints are on.
-    private var detailsLabel: String {
-        let s = engine.settings
-        switch (s.isEnabled(.genre), s.isEnabled(.year)) {
-        case (true, false): return "Genre"
-        case (false, true): return "Year"
-        default: return "Genre · Year"
-        }
-    }
-
-    private var hints: some View {
-        let song = controller.currentSong
-        return VStack(alignment: .leading, spacing: 56) {
-            HintLine(label: detailsLabel, visible: engine.isShowing(.genre) || engine.isShowing(.year)) {
-                HintText(song?.details(genre: engine.isShowing(.genre), year: engine.isShowing(.year)) ?? "Not listed")
-            }
-            HintLine(label: "Title", visible: engine.isShowing(.title)) {
-                TitleBlanks(words: engine.titleHint)
-            }
-            HintLine(label: "Artist", visible: engine.isShowing(.artist)) {
-                HintText(song?.artistName ?? "")
-            }
-        }
-    }
-
-    private var revealText: some View {
-        let song = controller.currentSong
-        return VStack(alignment: .leading, spacing: 20) {
-            if let number = engine.called.last?.number {
-                Text("Called #\(number)")
-                    .font(.system(size: 26, weight: .semibold))
-                    .tracking(3)
-                    .foregroundStyle(.white.opacity(0.4))
-            }
-            Text(song?.title ?? "")
-                .font(.system(size: 76, weight: .bold))
-                .lineLimit(3)
-                .minimumScaleFactor(0.5)
-            Text(song?.artistName ?? "")
-                .font(.system(size: 46, weight: .medium))
-                .foregroundStyle(.white.opacity(0.75))
-            if let detail = song?.genreAndYear {
-                Text(detail)
-                    .font(.system(size: 32))
-                    .foregroundStyle(.white.opacity(0.45))
-            }
-        }
-        .foregroundStyle(.white)
-        .transition(.opacity)
     }
 
     private var controls: some View {
@@ -225,16 +223,19 @@ struct RoundView: View {
     }
 }
 
-/// Countdown ring with the album art inside it as a circle.
+/// Countdown ring with the album art inside it as a circle and the time
+/// left in the middle.
 private struct DiscView: View {
     let progress: Double
     let artwork: Artwork?
     let showArt: Bool
     let sharpness: Double
     let dimmed: Bool
+    let centerText: String?
+    let revealed: Bool
 
-    private let size: CGFloat = 500
-    private var artSize: CGFloat { size - 70 }
+    private let size: CGFloat = 440
+    private var artSize: CGFloat { size - 60 }
 
     var body: some View {
         ZStack {
@@ -242,7 +243,7 @@ private struct DiscView: View {
                 .stroke(.white.opacity(0.12), lineWidth: 12)
             Circle()
                 .trim(from: 0, to: progress)
-                .stroke(.white.opacity(dimmed ? 0.35 : 0.9),
+                .stroke(revealed ? Color.green : .white.opacity(dimmed ? 0.35 : 0.9),
                         style: StrokeStyle(lineWidth: 12, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 0.15), value: progress)
@@ -251,6 +252,18 @@ private struct DiscView: View {
                 .clipShape(Circle())
                 .opacity(showArt ? 1 : 0)
                 .animation(.easeIn(duration: 1.5), value: showArt)
+            if let centerText {
+                Text(centerText)
+                    .font(.system(size: 96, weight: .bold).monospacedDigit())
+                    .foregroundStyle(.white.opacity(dimmed ? 0.5 : 1))
+                    .shadow(color: .black.opacity(0.8), radius: 14)
+                    .background(
+                        Circle()
+                            .fill(.black.opacity(showArt ? 0.4 : 0))
+                            .frame(width: 230, height: 230)
+                    )
+                    .transition(.opacity)
+            }
         }
         .frame(width: size, height: size)
     }
@@ -274,11 +287,12 @@ private struct DiscView: View {
 
 private struct HintLine<Content: View>: View {
     let label: String
+    let alignment: HorizontalAlignment
     let visible: Bool
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: alignment, spacing: 14) {
             Text(label.uppercased())
                 .font(.system(size: 24, weight: .semibold))
                 .tracking(3)
@@ -292,27 +306,35 @@ private struct HintLine<Content: View>: View {
 
 private struct HintText: View {
     let text: String
-    init(_ text: String) { self.text = text }
+    let alignment: TextAlignment
+
+    init(_ text: String, alignment: TextAlignment) {
+        self.text = text
+        self.alignment = alignment
+    }
 
     var body: some View {
         Text(text)
             .font(.system(size: 54, weight: .semibold))
             .foregroundStyle(.white)
+            .multilineTextAlignment(alignment)
             .lineLimit(2)
             .minimumScaleFactor(0.6)
     }
 }
 
-/// The title as blanks, one per letter, e.g. "H _ _   J _ _ _".
+/// The title as a slot per letter, e.g. "H _ _   J _ _ _". With
+/// `showBlanks` off, hidden letters are empty space and letters just appear.
 private struct TitleBlanks: View {
     let words: [[HintGlyph]]
+    let showBlanks: Bool
 
     var body: some View {
-        FlowLayout(spacing: 40, lineSpacing: 22) {
+        FlowLayout(spacing: 40, lineSpacing: 22, centered: true) {
             ForEach(words.indices, id: \.self) { w in
                 HStack(spacing: 8) {
                     ForEach(words[w].indices, id: \.self) { g in
-                        GlyphCell(glyph: words[w][g])
+                        GlyphCell(glyph: words[w][g], showBlank: showBlanks)
                     }
                 }
             }
@@ -322,19 +344,23 @@ private struct TitleBlanks: View {
 
 private struct GlyphCell: View {
     let glyph: HintGlyph
+    let showBlank: Bool
 
     var body: some View {
-        switch glyph {
-        case .hidden:
-            slot(Text(" "))
-        case .shown(let character):
-            slot(Text(String(character)))
-        case .symbol(let character):
-            Text(String(character))
-                .font(.system(size: 46, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(height: 64)
+        Group {
+            switch glyph {
+            case .hidden:
+                slot(Text(" "))
+            case .shown(let character):
+                slot(Text(String(character)))
+            case .symbol(let character):
+                Text(String(character))
+                    .font(.system(size: 46, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(height: 63)
+            }
         }
+        .animation(.easeIn(duration: 0.5), value: glyph)
     }
 
     private func slot(_ text: Text) -> some View {
@@ -344,16 +370,18 @@ private struct GlyphCell: View {
                 .foregroundStyle(.white)
                 .frame(width: 34, height: 54)
             Capsule()
-                .fill(.white.opacity(0.7))
+                .fill(.white.opacity(showBlank ? 0.7 : 0))
                 .frame(width: 34, height: 5)
         }
     }
 }
 
-/// Lays children out left to right, wrapping to a new line when they don't fit.
+/// Lays children out left to right, wrapping to a new line when they don't
+/// fit. With `centered`, each line is centered.
 private struct FlowLayout: Layout {
     var spacing: CGFloat
     var lineSpacing: CGFloat
+    var centered = false
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let frames = arrange(subviews, maxWidth: proposal.width ?? .infinity)
@@ -371,7 +399,7 @@ private struct FlowLayout: Layout {
     }
 
     private func arrange(_ subviews: Subviews, maxWidth: CGFloat) -> [CGRect] {
-        var frames: [CGRect] = []
+        var rows: [[CGRect]] = [[]]
         var x: CGFloat = 0
         var y: CGFloat = 0
         var rowHeight: CGFloat = 0
@@ -381,12 +409,21 @@ private struct FlowLayout: Layout {
                 x = 0
                 y += rowHeight + lineSpacing
                 rowHeight = 0
+                rows.append([])
             }
-            frames.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
+            rows[rows.count - 1].append(CGRect(origin: CGPoint(x: x, y: y), size: size))
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
         }
-        return frames
+        guard centered else { return rows.flatMap { $0 } }
+
+        // Center each line within the widest line (or the available width).
+        let widest = rows.map { $0.last?.maxX ?? 0 }.max() ?? 0
+        let width = maxWidth.isFinite ? maxWidth : widest
+        return rows.flatMap { row -> [CGRect] in
+            let shift = (width - (row.last?.maxX ?? 0)) / 2
+            return row.map { $0.offsetBy(dx: max(shift, 0), dy: 0) }
+        }
     }
 }
 

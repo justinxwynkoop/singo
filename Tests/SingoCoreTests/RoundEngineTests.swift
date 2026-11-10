@@ -54,17 +54,18 @@ final class RoundEngineTests: XCTestCase {
         XCTAssertFalse(round.isShowing(.title))
     }
 
-    func testDefaultHintScheduleMatchesBrief() {
+    func testDefaultHintSchedule() {
         var settings = RoundSettings()
         settings.setEnabled(.title, true)
         var round = engine(settings: settings)
         _ = run(&round, for: 9.5)
-        XCTAssertFalse(round.isShowing(.genre))
-        _ = run(&round, for: 0.5) // 10 s
-        XCTAssertTrue(round.isShowing(.genre))
         XCTAssertFalse(round.isShowing(.title))
-        _ = run(&round, for: 5) // 15 s
+        _ = run(&round, for: 0.5) // 10 s: title first
         XCTAssertTrue(round.isShowing(.title))
+        XCTAssertFalse(round.isShowing(.genre))
+        _ = run(&round, for: 5) // 15 s
+        XCTAssertTrue(round.isShowing(.genre))
+        XCTAssertTrue(round.isShowing(.year))
         XCTAssertFalse(round.isShowing(.art))
         _ = run(&round, for: 5) // 20 s
         XCTAssertTrue(round.isShowing(.art))
@@ -200,7 +201,8 @@ final class RoundEngineTests: XCTestCase {
     func testHintScheduleScalesWithClipLength() {
         var settings = RoundSettings()
         settings.clipLength = 60
-        XCTAssertEqual(settings.time(of: .genre), 20, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .title), 20, accuracy: 0.001)
+        XCTAssertEqual(settings.time(of: .genre), 30, accuracy: 0.001)
         XCTAssertEqual(settings.time(of: .artist), 50, accuracy: 0.001)
     }
 
@@ -252,6 +254,13 @@ final class TitleHintTests: XCTestCase {
         XCTAssertTrue(TitleHint.text(for: title, style: .fillIn, fill: 1).hasPrefix("H"))
     }
 
+    func testLettersOnlyFillsLikeFillIn() {
+        XCTAssertEqual(TitleHint.text(for: "Hey Jude", style: .fillInLettersOnly, fill: 0.6),
+                       TitleHint.text(for: "Hey Jude", style: .fillIn, fill: 0.6))
+        XCTAssertFalse(TitleHintStyle.fillInLettersOnly.showsBlanks)
+        XCTAssertTrue(TitleHintStyle.fillInLettersOnly.fillsIn)
+    }
+
     func testFillInIsStableAndOnlyGrows() {
         let title = "Bohemian Rhapsody"
         var previous = 0
@@ -270,9 +279,9 @@ final class TitleHintTests: XCTestCase {
         settings.setEnabled(.title, true)
         settings.titleHintStyle = .fillIn
         var round = engine(settings: settings)
-        _ = run(&round, for: 15)
+        _ = run(&round, for: 10)
         XCTAssertEqual(settings.titleFill(at: round.hintClock), 0)
-        _ = run(&round, for: 7.5)
+        _ = run(&round, for: 10)
         XCTAssertEqual(settings.titleFill(at: round.hintClock), 0.5, accuracy: 0.001)
         round.addTime()   // more time must not take letters back
         XCTAssertEqual(settings.titleFill(at: round.hintClock), 0.5, accuracy: 0.001)
