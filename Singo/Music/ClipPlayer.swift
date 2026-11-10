@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import MediaPlayer
 import MusicKit
 import os
 
@@ -21,6 +22,7 @@ enum ClipPlayerError: LocalizedError {
 final class ClipPlayer {
     private let player = ApplicationMusicPlayer.shared
     private var audioSessionReady = false
+    private var currentLabel = ""
 
     /// Claim the TV's audio output for music playback.
     private func prepareAudioSession() {
@@ -36,16 +38,31 @@ final class ClipPlayer {
         }
     }
 
-    func play(_ song: Song, from startTime: TimeInterval) async throws {
+    /// tvOS shows a "Now Playing" card with the title and artist whenever a
+    /// song starts, which gives the answer away. Replace what it shows with
+    /// something spoiler-free.
+    func hideSongDetails(showing label: String) {
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = [
+            MPMediaItemPropertyTitle: "Singo Night",
+            MPMediaItemPropertyArtist: label,
+            MPMediaItemPropertyAlbumTitle: "",
+        ]
+    }
+
+    /// `label` is what the "Now Playing" card shows instead of the song, e.g. "Song 3 of 28".
+    func play(_ song: Song, from startTime: TimeInterval, label: String) async throws {
         prepareAudioSession()
+        currentLabel = label
         log.info("Playing \(song.title, privacy: .public) from \(startTime)s")
 
         player.state.shuffleMode = .off
         player.state.repeatMode = MusicPlayer.RepeatMode.none
         player.queue = ApplicationMusicPlayer.Queue(for: [song])
         try await player.prepareToPlay()
+        hideSongDetails(showing: label)
         player.playbackTime = startTime
         try await player.play()
+        hideSongDetails(showing: label)
 
         // play() can return before audio starts, or without starting at all.
         // Wait up to 3 seconds for it to really play, nudging it once.
@@ -68,6 +85,16 @@ final class ClipPlayer {
             player.playbackTime = startTime
         }
         log.info("Playing at \(self.player.playbackTime)s")
+
+        // The music player may publish the real details again once playback
+        // settles, so cover them up a couple more times.
+        hideSongDetails(showing: label)
+        Task {
+            for delay in [0.5, 1.5, 3.0] {
+                try? await Task.sleep(for: .seconds(delay))
+                hideSongDetails(showing: label)
+            }
+        }
     }
 
     func pause() {
@@ -77,6 +104,7 @@ final class ClipPlayer {
     func resume() async {
         do {
             try await player.play()
+            hideSongDetails(showing: currentLabel)
         } catch {
             log.error("Resume failed: \(error.localizedDescription, privacy: .public)")
         }

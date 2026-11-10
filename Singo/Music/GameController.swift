@@ -170,7 +170,8 @@ final class GameController: Identifiable {
 
         Task {
             do {
-                try await player.play(song, from: startTime)
+                try await player.play(song, from: startTime,
+                                      label: "Song \(engine.songNumber) of \(engine.songs.count)")
                 guard generation == playGeneration else { return }
                 isBuffering = false
                 failuresInARow = 0

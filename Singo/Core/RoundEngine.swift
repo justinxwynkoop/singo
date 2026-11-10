@@ -88,7 +88,7 @@ public struct RoundEngine: Sendable {
         switch phase {
         case .revealed: return true
         case .finished: return false
-        case .playing: return hintClock >= settings.time(of: hint)
+        case .playing: return settings.isEnabled(hint) && hintClock >= settings.time(of: hint)
         }
     }
 

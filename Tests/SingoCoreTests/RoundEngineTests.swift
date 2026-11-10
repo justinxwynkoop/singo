@@ -161,6 +161,33 @@ final class RoundEngineTests: XCTestCase {
         XCTAssertEqual(round.start(), [.finished])
     }
 
+    func testTurnedOffHintStaysHiddenUntilReveal() {
+        var settings = RoundSettings()
+        settings.setEnabled(.title, false)
+        var round = engine(settings: settings)
+        _ = run(&round, for: 29)
+        XCTAssertFalse(round.isShowing(.title))
+        XCTAssertTrue(round.isShowing(.artist))
+        _ = run(&round, for: 1)
+        XCTAssertTrue(round.isShowing(.title))
+    }
+
+    func testOldSavedSettingsStillLoad() throws {
+        let json = #"{"clipLength": 45, "titleHintStyle": "both"}"#
+        let settings = try JSONDecoder().decode(RoundSettings.self, from: Data(json.utf8))
+        XCTAssertEqual(settings.clipLength, 45)
+        XCTAssertEqual(settings.titleHintStyle, .firstLetter)
+        XCTAssertEqual(settings.enabledHints, Set(Hint.allCases))
+    }
+
+    func testSettingsRoundTrip() throws {
+        var settings = RoundSettings()
+        settings.setEnabled(.art, false)
+        settings.startOffset = 15
+        let data = try JSONEncoder().encode(settings)
+        XCTAssertEqual(try JSONDecoder().decode(RoundSettings.self, from: data), settings)
+    }
+
     func testHintScheduleScalesWithClipLength() {
         var settings = RoundSettings()
         settings.clipLength = 60

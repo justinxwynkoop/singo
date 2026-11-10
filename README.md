@@ -28,8 +28,10 @@ real Apple TV.
 
 ## Playing a round
 
-1. Pick a playlist, adjust the clip length, start offset and hint style, then
-   **Start round**.
+1. Pick a playlist. On the next screen, swipe across each row and click to
+   choose: clip length, where each song starts, the add-time button, whether
+   the next song starts automatically, and which hints show (each one can be
+   turned off). Then **Start round**. Choices are remembered.
 2. Each song, with a 30-second clip:
 
    | Time | What happens |
@@ -108,8 +110,11 @@ Or open `Package.swift` in Xcode and press ⌘U.
 - If three songs in a row fail to play (no subscription, no network), the round
   pauses with a message instead of running through the playlist.
 - The Apple TV won't go to its screensaver during a round.
-- Title hint styles (set before the round): blanks only, blanks + first letter
-  (default), or blanks + first letter of each word.
+- Title hint styles (set before the round): off, blanks only, blanks + first
+  letter (default), or blanks + first letter of each word.
+- tvOS pops up a "Now Playing" card when a song starts. The app replaces its
+  title and artist with "Singo Night · Song 3 of 28" so it doesn't give the
+  answer away.
 - If a song won't play, the reason shows on screen. Playback details also
   print in Xcode's console (filter for "playback") while running from Xcode.
 - There's no app icon yet; the Apple TV home screen shows a blank tile.
